@@ -616,3 +616,26 @@ function readBattery(fileName,fileType)
     end
     return bData;
 end
+
+function readDemand(fileName,fileType)
+    # read in the battery information: charging/discharging factor, capacity
+    if fileType == "csv"
+        # csv file format:
+        # First column: node ID
+        # Second column: ηd
+        # Third column: ηc
+        # Fourth column: capacity
+        # Fifth column: cost (optional)
+        dataRaw = readdlm(fileName, ',');
+        mb,nb = size(dataRaw);
+        pd = Dict();
+        qd = Dict();
+        for i in 1:mb
+            pd[Int64(dataRaw[i,1])] = dataRaw[i,2];
+            qd[Int64(dataRaw[i,1])] = dataRaw[i,3];
+        end
+    else
+        println("Currently your file type is not supported");
+    end
+    return pd,qd;
+end
