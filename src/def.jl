@@ -1,6 +1,6 @@
 # define the type of data
 
-type fixedData
+struct fixedData
     # static network data
     baseMVA :: Float64
     bType :: Dict{Int64,Any}
@@ -39,22 +39,47 @@ type fixedData
 
     cp :: Dict{Any,Any}
     cq :: Dict{Any,Any}
+    cz :: Float64
 
     busInd :: Dict{Any,Any}
+    branchDict1 :: Dict{Any,Any}
+    branchDict2 :: Dict{Any,Any}
+    connectPair :: Array{Any,1}
+    connectDict :: Dict{Any,Any}
+    kpDict :: Dict{Any,Any}
+
 end
 
-type probDistrn
+struct costDataType
+    model :: Int64
+    upCost :: Float64
+    downCost :: Float64
+    n :: Int64
+    params :: Array{Float64,1}
+end
+
+struct probDistrn
     # probability distribution of disruption timing
     tDistrn :: Dict{Int64,Any}
 
     # probability distribution of disruption magnitude
-    ωDistrn :: Dict{Int64,Any}
+    ωDistrn :: Dict{Any,Any}
 end
 
-type batteryData
+struct batteryData
     # battery information: charging/discharging factor, capacity
-    ηd :: Dict{Int64,Any}
-    ηc :: Dict{Int64,Any}
+    IDList :: Array{Any,1}
+    Loc :: Dict{Int64,Any}
+    ηα :: Dict{Int64,Any}
+    ηβ :: Dict{Int64,Any}
     cap :: Dict{Int64,Any}
     cost :: Dict{Int64,Any}
+end
+
+struct solData
+    # solution information: generaion level, storage level, maximum generation output
+    gp :: Dict{Any,Any}
+    gq :: Dict{Any,Any}
+    w :: Dict{Any,Any}
+    G :: Dict{Any,Any}
 end

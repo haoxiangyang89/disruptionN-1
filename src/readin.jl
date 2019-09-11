@@ -1,4 +1,5 @@
 # functions to read-in the data
+using DelimitedFiles;
 
 function readMP(fileAdd::String)
     # read in the file from a specific address
@@ -11,31 +12,31 @@ function readMP(fileAdd::String)
     #   baseMVA: the base unit
 
     f = open(fileAdd);
-    rawStr = readstring(f);
+    rawStr = read(f,String);
     close(f);
 
     # separate the raw strings for bus/gen/branch/cost
-    if typeof(match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         busST = match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         busST = "";
     end
-    if typeof(match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         genST = match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         genST = "";
     end
-    if typeof(match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         brST = match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         brST = "";
     end
-    if typeof(match(r"mpc.gencost = \[([0-9\t\ \.\;\r\n\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.gencost = \[([0-9\t\ \.\;\r\n\-e]*)\];",rawStr)) != Nothing
         cST = match(r"mpc.gencost = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         cST = "";
     end
-    if typeof(match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         uST = match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         uST = ""
@@ -52,7 +53,7 @@ function parsebusST(busST,baseMVA)
     # output: List of bus ID, list of generator ID, data variable Vmax/Vmin
 
     # separate the raw strings line by line
-    busSTlbl = matchall(r"[0-9\t\ \.\-e]+[\;\r]*\n",busST);
+    busSTlbl = collect(eachmatch(r"([0-9\t\ \.\-e]+[\;\r]*\n)",busST));
 
     # parse each line of the bus data
     Vmax = Dict();
@@ -66,7 +67,8 @@ function parsebusST(busST,baseMVA)
     Qd = Dict();
     IDList = [];
     for bstr in busSTlbl
-        bsstr = strip(strip(bstr),';');
+        bsstr = bstr.captures[1];
+        bsstr = strip(strip(bsstr),';');
         bdata = split(bsstr);
 
         # update the IDList with the ID of the current bus
@@ -102,7 +104,7 @@ function parsegenST(genST,baseMVA)
   # output: data variable
 
   # separate the raw strings line by line
-    genSTlbl = matchall(r"[0-9\t\ \.\-e]+[\;\r]*\n",genST);
+    genSTlbl = collect(eachmatch(r"([0-9\t\ \.\-e]+[\;\r]*\n)",genST));
 
     # parse each line of the generator data
     Pmax = Dict();
@@ -116,7 +118,8 @@ function parsegenST(genST,baseMVA)
     l = 0;
     genIDList = [];
     for gstr in genSTlbl
-        gsstr = strip(strip(gstr),';');
+        gsstr = gstr.captures[1];
+        gsstr = strip(strip(gsstr),';');
         gdata = split(gsstr);
         l += 1;
 
@@ -149,7 +152,7 @@ function parsebrST(brST,baseMVA)
     # output: data variable
 
     # separate the raw strings line by line
-    brSTlbl = matchall(r"[0-9\t\ \.\-e]+[\;\r]*\n",brST);
+    brSTlbl = collect(eachmatch(r"([0-9\t\ \.\-e]+[\;\r]*\n)",brST));
 
     g = Dict();
     b = Dict();
@@ -165,7 +168,8 @@ function parsebrST(brST,baseMVA)
     rateA = Dict();
 
     for brstr in brSTlbl
-        brsstr = strip(strip(brstr),';');
+        brsstr = brstr.captures[1];
+        brsstr = strip(strip(brsstr),';');
         brdata = split(brsstr);
 
         fID = parse(Int64,brdata[1]);
@@ -184,10 +188,10 @@ function parsebrST(brST,baseMVA)
                 τ = 1.0;
             end
             σ1 = parse(Float64,brdata[10]);
-            g[(fID,tID,1)] = round(r/(r^2 + x^2),6);
-            g[(tID,fID,1)] = round(r/(r^2 + x^2),6);
-            b[(fID,tID,1)] = round(-x/(r^2 + x^2),6);
-            b[(tID,fID,1)] = round(-x/(r^2 + x^2),6);
+            g[(fID,tID,1)] = round(r/(r^2 + x^2); digits = 6);
+            g[(tID,fID,1)] = round(r/(r^2 + x^2); digits = 6);
+            b[(fID,tID,1)] = round(-x/(r^2 + x^2); digits = 6);
+            b[(tID,fID,1)] = round(-x/(r^2 + x^2); digits = 6);
             bc[(fID,tID,1)] = bc1;
             bc[(tID,fID,1)] = bc1;
             τ1[(fID,tID,1)] = τ;
@@ -222,10 +226,10 @@ function parsebrST(brST,baseMVA)
                 τ = 1.0;
             end
             σ1 = parse(Float64,brdata[10]);
-            g[(fID,tID,m[(fID,tID)])] = round(r/(r^2 + x^2),6);
-            g[(tID,fID,m[(tID,fID)])] = round(r/(r^2 + x^2),6);
-            b[(fID,tID,m[(fID,tID)])] = round(-x/(r^2 + x^2),6);
-            b[(tID,fID,m[(tID,fID)])] = round(-x/(r^2 + x^2),6);
+            g[(fID,tID,m[(fID,tID)])] = round(r/(r^2 + x^2); digits = 6);
+            g[(tID,fID,m[(tID,fID)])] = round(r/(r^2 + x^2); digits = 6);
+            b[(fID,tID,m[(fID,tID)])] = round(-x/(r^2 + x^2); digits = 6);
+            b[(tID,fID,m[(tID,fID)])] = round(-x/(r^2 + x^2); digits = 6);
             bc[(fID,tID,m[(fID,tID)])] = bc1;
             bc[(tID,fID,m[(tID,fID)])] = bc1;
             τ1[(fID,tID,m[(fID,tID)])] = τ;
@@ -269,7 +273,7 @@ function parsecST(cST,genIDList,baseMVA)
     # output: data variable
 
     # separate the raw strings line by line
-    cSTlbl = matchall(r"[0-9\t\ \.\-e]+[\;\r]*\n",cST);
+    cSTlbl = collect(eachmatch(r"([0-9\t\ \.\-e]+[\;\r]*\n)",cST));
     cp = Dict();
     cq = Dict();
 
@@ -278,7 +282,8 @@ function parsecST(cST,genIDList,baseMVA)
         counter = 0;
 
         for cstr in cSTlbl
-            csstr = strip(strip(cstr),';');
+            csstr = cstr.captures[1];
+            csstr = strip(strip(csstr),';');
             cdata = split(csstr);
 
             counter += 1;
@@ -298,7 +303,8 @@ function parsecST(cST,genIDList,baseMVA)
         # both active power and reactive power
         counter = 0;
         for cstr in cSTlbl
-            csstr = strip(strip(cstr),';');
+            csstr = cstr.captures[1];
+            csstr = strip(strip(csstr),';');
             cdata = split(csstr,r"\t");
 
             counter += 1;
@@ -325,7 +331,7 @@ function parsecST(cST,genIDList,baseMVA)
     return cp,cq;
 end
 
-function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,RU,RD)
+function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz)
     # combine all the data to a struct
     connectPair = [];
     connectDict = Dict();
@@ -516,19 +522,49 @@ function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,P
         ii += 1;
         busInd[i] = ii;
     end
-    fData = fixedData(baseMVA,bType,IDList,genIDList,brList,brRev,L,LR,Vmax,Vmin,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,busInd,RU,RD);
+
+    # obtain the pairs that are connected
+    connectPair = [];
+    connectDict = Dict();
+    branchDict1 = Dict();
+    branchDict2 = Dict();
+    for i in IDList
+        connectDict[i] = [];
+        branchDict1[i] = [];
+        branchDict2[i] = [];
+    end
+    for k in brList
+        push!(branchDict1[k[1]],k);
+        push!(branchDict2[k[2]],k);
+        if !((k[1],k[2]) in connectPair)
+            push!(connectPair,(k[1],k[2]));
+            push!(connectDict[k[1]],k[2]);
+        end
+    end
+    kpDict = Dict();
+    for k in brList
+        if (k[1],k[2]) in keys(kpDict)
+            push!(kpDict[(k[1],k[2])],k);
+        else
+            kpDict[(k[1],k[2])] = [k];
+        end
+    end
+    fData = fixedData(baseMVA,bType,IDList,genIDList,brList,brRev,
+                        L,LR,Vmax,Vmin,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,
+                        Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
+                        busInd,branchDict1,branchDict2,connectPair,connectDict,kpDict);
     return fData
 end
 
-function readStatic(fileName::String)
+function readStatic(fileName::String, cz = 20)
     # read in the static network information from a .m file (MatPower)
-    busST,genST,brST,cST,uST,baseMVA = readMP(fileName);
+    busST,genST,brST,cST,uST,baseMVA = readMP(fileAdd);
     IDList,Vmax,Vmin,gs,bs,Vmag,Vang,Pd,Qd,bType = parsebusST(busST,baseMVA);
-    genIDList,L,LR,Pmax,Pmin,Qmax,Qmin,Pg,Qg = parsegenST(genST,baseMVA);
-    brList1,brRev,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ = parsebrST(brST,baseMVA);
+    genIDList,Loc,LocRev,Pmax,Pmin,Qmax,Qmin,Pg,Qg = parsegenST(genST,baseMVA);
+    brList,brRev,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ = parsebrST(brST,baseMVA);
     cp,cq = parsecST(cST,genIDList,baseMVA);
     fData = constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,Loc,LocRev,Pmax,Pmin,Qmax,Qmin,
-          gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq);
+            gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz);
 
     # specify the line power flow constraint if there is none
     θu = pi/3;
@@ -553,7 +589,7 @@ function readDisruption(fileName,fileType)
         # detect the dimension of T
         dataT = dataRaw[1:2,:];
         emptyInd = findfirst(x -> x=="", dataT[1,:]);
-        if not(isnothing(emptyInd))
+        if !(isnothing(emptyInd))
             # if it is not full length
             dataT = dataT[:,1:(emptyInd - 1)];
         end
@@ -566,23 +602,33 @@ function readDisruption(fileName,fileType)
         # detect the dimension of Ω
         dataOme = dataRaw[3:4,:];
         emptyInd = findfirst(x -> x=="", dataOme[1,:]);
-        if not(isnothing(emptyInd))
+        if !(isnothing(emptyInd))
             # if it is not full length
             dataOme = dataOme[:,1:(emptyInd - 1)];
         end
         ωDistrn = Dict();
         mo,no = size(dataOme);
         for oInd in 1:no
-            # parse the line
             lineStr = dataOme[1,oInd];
-            startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
-            ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[2,oInd];
+            if ',' in lineStr
+                # parse the line
+                startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
+                ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[2,oInd];
+            else
+                # parse the node
+                disN = lineStr;
+                ωDistrn[disN] = dataOme[2,oInd];
+            end
         end
-        pDistr = probDistrn(tDistrn,ωDistrn);
+        if sum(values(ωDistrn)) == 1
+            pDistr = probDistrn(tDistrn,ωDistrn);
+            return pDistr;
+        else
+            println("Please input the right probability measure");
+        end
     else
         println("Currently your file type is not supported");
     end
-    return pDistr;
 end
 
 function readBattery(fileName,fileType)
@@ -596,43 +642,53 @@ function readBattery(fileName,fileType)
         # Fifth column: cost (optional)
         dataRaw = readdlm(fileName, ',');
         mb,nb = size(dataRaw);
-        ηd = Dict();
-        ηc = Dict();
         capacity = Dict();
         cost = Dict();
+        ηα = Dict();
+        ηβ = Dict();
+        IDList = [];
+        LocDict = Dict();
+
         for i in 1:mb
-            ηd[Int64(dataRaw[i,1])] = dataRaw[i,2];
-            ηc[Int64(dataRaw[i,1])] = dataRaw[i,3];
-            capacity[Int64(dataRaw[i,1])] = dataRaw[i,4];
-            if dataRaw[i,5] == ""
-                cost[Int64(dataRaw[i,1])] = 0;
-            else
-                cost[Int64(dataRaw[i,1])] = dataRaw[i,5];
+            ID = Int64(dataRaw[i,1]);
+            push!(IDList,ID);
+            loc = Int64(dataRaw[i,2]);
+            LocDict[ID] = loc;
+            capacity[ID] = dataRaw[i,3];
+            cost[ID] = dataRaw[i,4];
+            ηparams = [j for j in dataRaw[i,5:nb] if j != ""];
+            for j in 1:2:length(ηparams)
+                ηα[ID] = ηparams[j];
+                # ηα must be monotonously decreasing
+                ηβ[ID] = ηparams[j + 1];
             end
         end
-        bData = batteryData(ηd,ηc,capacity,cost);
+        bData = batteryData(IDList,LocDict,ηα,ηβ,capacity,cost);
     else
         println("Currently your file type is not supported");
     end
     return bData;
 end
 
-function readDemand(fileName,fileType)
+function readDemand(fileNameP, fileNameQ, fileType)
     # read in the battery information: charging/discharging factor, capacity
     if fileType == "csv"
         # csv file format:
         # First column: node ID
         # Second column: ηd
         # Third column: ηc
-        # Fourth column: capacity
-        # Fifth column: cost (optional)
-        dataRaw = readdlm(fileName, ',');
-        mb,nb = size(dataRaw);
+        dataRawP = readdlm(fileNameP, ',');
+        mp,np = size(dataRawP);
         pd = Dict();
+        for i in 1:mp
+            pd[Int64(dataRawP[i,1])] = dataRawP[i,2:np];
+        end
+
+        dataRawQ = readdlm(fileNameQ, ',');
+        mq,nq = size(dataRawQ);
         qd = Dict();
-        for i in 1:mb
-            pd[Int64(dataRaw[i,1])] = dataRaw[i,2];
-            qd[Int64(dataRaw[i,1])] = dataRaw[i,3];
+        for i in 1:mq
+            qd[Int64(dataRawQ[i,1])] = dataRawQ[i,2:nq];
         end
     else
         println("Currently your file type is not supported");
