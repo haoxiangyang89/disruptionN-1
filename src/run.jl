@@ -7,6 +7,6 @@ disAdd = "./test/testProbRead.csv"
 pDistr = readDisruption(disAdd,"csv");
 pAdd = "./test/testDataP.csv";
 qAdd = "./test/testDataQ.csv";
-pd,qd = readDemand(pAdd,qAdd,"csv");
+dData = readDemand(pAdd,qAdd,"csv");
 bAdd = "./test/testDataB.csv";
 bData = readBattery(bAdd,"csv");

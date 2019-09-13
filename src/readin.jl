@@ -113,6 +113,8 @@ function parsegenST(genST,baseMVA)
     Qmin = Dict();
     Pg = Dict();
     Qg = Dict();
+    RU = Dict();
+    RD = Dict();
     L = Dict();
     LR = Dict();
     l = 0;
@@ -142,8 +144,11 @@ function parsegenST(genST,baseMVA)
 
         Pg[l] = parse(Float64,gdata[2])/baseMVA;
         Qg[l] = parse(Float64,gdata[3])/baseMVA;
+
+        RU[l] = parse(Float64,gdata[17]);
+        RD[l] = -RU[l];
     end
-    return genIDList,L,LR,Pmax,Pmin,Qmax,Qmin,Pg,Qg;
+    return genIDList,L,LR,Pmax,Pmin,Qmax,Qmin,Pg,Qg,RU,RD;
 end
 
 function parsebrST(brST,baseMVA)
@@ -331,7 +336,7 @@ function parsecST(cST,genIDList,baseMVA)
     return cp,cq;
 end
 
-function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz)
+function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,RU,RD,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz)
     # combine all the data to a struct
     connectPair = [];
     connectDict = Dict();
@@ -551,7 +556,7 @@ function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,P
     end
     fData = fixedData(baseMVA,bType,IDList,genIDList,brList,brRev,
                         L,LR,Vmax,Vmin,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,
-                        Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
+                        Pd,Qd,Pg,Qg,RU,RD,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
                         busInd,branchDict1,branchDict2,connectPair,connectDict,kpDict);
     return fData
 end
@@ -560,11 +565,11 @@ function readStatic(fileName::String, cz = 20)
     # read in the static network information from a .m file (MatPower)
     busST,genST,brST,cST,uST,baseMVA = readMP(fileAdd);
     IDList,Vmax,Vmin,gs,bs,Vmag,Vang,Pd,Qd,bType = parsebusST(busST,baseMVA);
-    genIDList,Loc,LocRev,Pmax,Pmin,Qmax,Qmin,Pg,Qg = parsegenST(genST,baseMVA);
+    genIDList,Loc,LocRev,Pmax,Pmin,Qmax,Qmin,Pg,Qg,RU,RD = parsegenST(genST,baseMVA);
     brList,brRev,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ = parsebrST(brST,baseMVA);
     cp,cq = parsecST(cST,genIDList,baseMVA);
     fData = constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,Loc,LocRev,Pmax,Pmin,Qmax,Qmin,
-            gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz);
+            gs,bs,Vmag,Vang,Pd,Qd,Pg,Qg,RU,RD,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz);
 
     # specify the line power flow constraint if there is none
     θu = pi/3;
@@ -648,6 +653,7 @@ function readBattery(fileName,fileType)
         ηβ = Dict();
         IDList = [];
         LocDict = Dict();
+        bInv = Dict();
 
         for i in 1:mb
             ID = Int64(dataRaw[i,1]);
@@ -656,14 +662,17 @@ function readBattery(fileName,fileType)
             LocDict[ID] = loc;
             capacity[ID] = dataRaw[i,3];
             cost[ID] = dataRaw[i,4];
-            ηparams = [j for j in dataRaw[i,5:nb] if j != ""];
+            bInv[ID] = dataRaw[i,5];
+            ηparams = [j for j in dataRaw[i,6:nb] if j != ""];
+            ηα[ID] = [];
+            ηβ[ID] = [];
             for j in 1:2:length(ηparams)
-                ηα[ID] = ηparams[j];
+                push!(ηα[ID],ηparams[j]);
                 # ηα must be monotonously decreasing
-                ηβ[ID] = ηparams[j + 1];
+                push!(ηβ[ID],ηparams[j + 1]);
             end
         end
-        bData = batteryData(IDList,LocDict,ηα,ηβ,capacity,cost);
+        bData = batteryData(IDList,LocDict,bInv,ηα,ηβ,capacity,cost);
     else
         println("Currently your file type is not supported");
     end
@@ -690,8 +699,10 @@ function readDemand(fileNameP, fileNameQ, fileType)
         for i in 1:mq
             qd[Int64(dataRawQ[i,1])] = dataRawQ[i,2:nq];
         end
+        T = nq - 1;
+        dData = demandData(T,pd,qd);
+        return dData;
     else
         println("Currently your file type is not supported");
     end
-    return pd,qd;
 end

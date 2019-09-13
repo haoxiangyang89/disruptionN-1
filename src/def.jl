@@ -26,6 +26,8 @@ struct fixedData
     Qd :: Dict{Int64,Any}
     Pg :: Dict{Int64,Any}
     Qg :: Dict{Int64,Any}
+    RU :: Dict{Int64,Any}
+    RD :: Dict{Int64,Any}
 
     g :: Dict{Tuple{Int64,Int64,Int64},Any}
     b :: Dict{Tuple{Int64,Int64,Int64},Any}
@@ -70,6 +72,7 @@ struct batteryData
     # battery information: charging/discharging factor, capacity
     IDList :: Array{Any,1}
     Loc :: Dict{Int64,Any}
+    bInv :: Dict{Int64,Any}
     ηα :: Dict{Int64,Any}
     ηβ :: Dict{Int64,Any}
     cap :: Dict{Int64,Any}
@@ -78,8 +81,28 @@ end
 
 struct solData
     # solution information: generaion level, storage level, maximum generation output
-    gp :: Dict{Any,Any}
-    gq :: Dict{Any,Any}
+    sp :: Dict{Any,Any}
+    sq :: Dict{Any,Any}
     w :: Dict{Any,Any}
-    G :: Dict{Any,Any}
+    u :: Dict{Any,Any}
+    lp :: Dict{Any,Any}
+    lq :: Dict{Any,Any}
+end
+
+struct demandData
+    # demand data: active demand and reactive demand
+    T :: Int64
+    pd :: Dict{Any,Any}
+    qd :: Dict{Any,Any}
+end
+
+struct cutData
+    # cut data: slope for sp, w and u and the intercept
+    λ :: Dict{Any,Any}
+    γ :: Dict{Any,Any}
+    μ :: Dict{Any,Any}
+    vhat :: Float64
+    sphat :: Dict{Any,Any}
+    what :: Dict{Any,Any}
+    uhat :: Dict{Any,Any}
 end
