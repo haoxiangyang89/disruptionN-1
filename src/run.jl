@@ -10,3 +10,6 @@ qAdd = "./test/testDataQ.csv";
 dData = readDemand(pAdd,qAdd,"csv");
 bAdd = "./test/testDataB.csv";
 bData = readBattery(bAdd,"csv");
+
+τ = 4;
+T = dData.T;

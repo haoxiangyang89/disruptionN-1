@@ -18,7 +18,7 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
     sphatsum = Dict();
     for t in td:T
         for i in fData.IDList
-            sphatsum[i] = @expression(mp,0.0);
+            sphatsum[i,t] = @expression(mp,0.0);
             if i in keys(fData.LocRev)
                 for j in fData.LocRev[i]
                     sphatsum[i,t] += sp[j,t];
@@ -29,7 +29,7 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
     sqhatsum = Dict();
     for t in td:T
         for i in fData.IDList
-            sqhatsum[i] = @expression(mp,0.0);
+            sqhatsum[i,t] = @expression(mp,0.0);
             if i in keys(fData.LocRev)
                 for j in fData.LocRev[i]
                     sqhatsum[i,t] += sq[j,t];
@@ -60,9 +60,9 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
     @constraint(mp, powerflow[k in fData.brList, t in td:T; ((k[1],k[2]) != ωd)&((k[2],k[1]) != ωd)], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in td:T; i != ωd], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in td:T; i != ωd], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
-    @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] = w[i,t-1] - y[i,t]*Δt);
+    @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
     @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
-    @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], z[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
+    @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
     @constraint(mp, bInvmax[i in bData.IDList, t in td:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,td - 1] == currentSol.w[i,td - 1]);
     @constraint(mp, spIni[i in fData.genIDList], sp[i,td - 1] == currentSol.sp[i,td - 1]);
@@ -99,7 +99,7 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
                 # add load shed cost
                 dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
             end
-            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + 1,ω] for ω in Ω));
+            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + td + τ,ω] for ω in Ω));
         else
             dExpr = @expression(mp, 0);
             for t in td:T
