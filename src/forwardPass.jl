@@ -315,12 +315,12 @@ function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
-        sol = noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict);
+        sol,objV = noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict);
     else
         # if it is f_{ht}^ω
-        sol = fBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
     end
-    return sol;
+    return sol,objV;
 end
 
 function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
@@ -330,6 +330,7 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
     # output: solList: a list of solution paths
     solDict = Dict();
     costDict = Dict();
+    objV = 0;
     for n in 1:N
         # for each trial path
         disT = 1;
@@ -340,12 +341,13 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
         while disT > T
             # solve the current stage problem, state variables are passed
             nowT = disT;
-            currentSol = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
-            push!(solHist,currentSol);
+            currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+            push!(solHist,(currentSol,nowT,ωd));
 
             # generate disruption
             tp,ωd = genScenario(pDistr);
             if nowT == 1
+                currentLB = objV;
                 disT += tp;
                 # calculate the cost of the solution until the next disruption time
                 costn += sum(sum(fData.cz*(currentSol.lp[i] + currentSol.lq[i]) for i in fData.IDList) for t in nowT:(disT - 1)) +
@@ -379,5 +381,5 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
         solDict[n] = solHist;
         costDict[n] = costn;
     end
-    return solDict,costDict;
+    return solDict, currentLB, costDict;
 end
