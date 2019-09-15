@@ -13,3 +13,4 @@ bData = readBattery(bAdd,"csv");
 
 τ = 4;
 T = dData.T;
+Δt = 0.25;

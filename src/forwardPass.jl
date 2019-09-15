@@ -74,9 +74,9 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
             if (tp,ω) in keys(cutDict)
                 for l in 1:length(cutDict[tp,ω])
                     @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i,ω]*(sp[i,tp - 1] - cutDict[tp,ω][l].sphat[i,tp - 1]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i,ω]*(w[i,tp - 1] - cutDict[tp,ω][l].what[i,tp - 1]) +
-                            cutDict[tp,ω][l].μ[i,ω]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
+                        sum(cutDict[tp,ω][l].λ[i]*(sp[i] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
+                        sum(cutDict[tp,ω][l].γ[i]*(w[i] - cutDict[tp,ω][l].what[i]) +
+                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
                 end
             end
         end
@@ -230,9 +230,9 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
             if (tp,ω) in keys(cutDict)
                 for l in 1:length(cutDict[tp,ω])
                     @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i,ω]*(sp[i,tp - 1] - cutDict[tp,ω][l].sphat[i,tp - 1]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i,ω]*(w[i,tp - 1] - cutDict[tp,ω][l].what[i,tp - 1]) +
-                            cutDict[tp,ω][l].μ[i,ω]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
+                        sum(cutDict[tp,ω][l].λ[i]*(sp[i] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
+                        sum(cutDict[tp,ω][l].γ[i]*(w[i] - cutDict[tp,ω][l].what[i]) +
+                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
                 end
             end
         end

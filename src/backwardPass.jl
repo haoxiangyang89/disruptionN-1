@@ -74,9 +74,9 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
             if (tp,ω) in keys(cutDict)
                 for l in 1:length(cutDict[tp,ω])
                     @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i,ω]*(sp[i,tp - 1] - cutDict[tp,ω][l].sphat[i,tp - 1]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i,ω]*(w[i,tp - 1] - cutDict[tp,ω][l].what[i,tp - 1]) +
-                            cutDict[tp,ω][l].μ[i,ω]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
+                        sum(cutDict[tp,ω][l].λ[i]*(sp[i,tp - 1] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
+                        sum(cutDict[tp,ω][l].γ[i]*(w[i,tp - 1] - cutDict[tp,ω][l].what[i]) +
+                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
                 end
             end
         end
@@ -161,8 +161,12 @@ function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, prevSol
 
     for ω in Ω
         # solve the later stage problem
-        cutCurrent = fBuild_D(td, ωd, prevSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
-        push!(cutDict[td,ω],cutCurrent);
+        cutCurrent = fBuild_D(td, ω, prevSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        if (td,ω) in keys(cutDict)
+            push!(cutDict[td,ω],cutCurrent);
+        else
+            cutDict[td,ω] = [cutCurrent];
+        end
     end
     return cutDict;
 end
@@ -183,11 +187,11 @@ function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDic
                 # if the disruption time is in the trial path, generate cuts
                 # using the solution from the previous disruption
                 prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < t]);
-                prevtd = currentPath[prevtpInd][2]; # == t
                 prevSol = currentPath[prevtpInd][1];
-                prevω = currentPath[prevtpInd][3];
-                cutDict = constructBackwardM(prevtd, τ, T, Δt, fData, pDistr, bData, dData, prevSol, cutDict);
+                cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, prevSol, cutDict);
+                println("Time $(t) Trial $(n) Passed");
             end
         end
     end
+    return cutDict;
 end

@@ -1,6 +1,6 @@
 # main program structure construction
 
-function solveMain(τ, T, fData, pDistr, bData, dData, N, printLog = false, iterMin = 1000, iterMax = 10000)
+function solveMain(τ, T, fData, pDistr, bData, dData, N, printLog = false, iterMin = 100, iterMax = 1000)
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
@@ -19,7 +19,7 @@ function solveMain(τ, T, fData, pDistr, bData, dData, N, printLog = false, iter
         if (currentLB <= currentUBu)&(currentLB >= currentUBl)&(iterNo >= iterMin)
             keepIter = false;
         else
-            cutDict = exeBackward(τ, T, fData, pDistr, bData, dData, trialPaths, cutDict);
+            cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict);
         end
     end
 end
