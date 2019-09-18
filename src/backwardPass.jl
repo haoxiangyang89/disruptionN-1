@@ -9,12 +9,31 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
         Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
     end
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
+    Bparams = Dict();
+    for t in td:T
+        # create B parameters
+        for k in fData.brList
+            # if the line is disrupted and it is within disruption time
+            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+                Bparams[k,t] = 0;
+            else
+                Bparams[k,t] = 1;
+            end
+        end
+        for i in fData.genIDList
+            if (i == ωd)&(t <= td + τ)
+                Bparams[i,t] = 0;
+            else
+                Bparams[i,t] = 1;
+            end
+        end
+    end
 
     mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
 
     # set up the variables
-    @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]);
-    @variable(mp, fData.Qmin[i] <= sq[i in fData.genIDList,t in (td - 1):T] <= fData.Qmax[i]);
+    @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
+    @variable(mp, fData.Qmin[i]*Bparams[i,t] <= sq[i in fData.genIDList,t in (td - 1):T] <= fData.Qmax[i]*Bparams[i,t]);
     sphatsum = Dict();
     for t in td:T
         for i in fData.IDList
@@ -38,9 +57,10 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
         end
     end
 
+    bigM = 1000;
     @variable(mp, p[k in fData.brList, t in td:T]);
     @variable(mp, q[k in fData.brList, t in td:T]);
-    @variable(mp, fData.Vmin[i] <= v[i in fData.IDList, t in td:T] <= fData.Vmax[i]);
+    @variable(mp, fData.Vmin[i]^2 <= v[i in fData.IDList, t in td:T] <= fData.Vmax[i]^2);
     @variable(mp, 0 <= w[i in bData.IDList, t in (td - 1):T] <= bData.cap[i]);
     @variable(mp, y[i in bData.IDList, t in td:T]);
     @variable(mp, zp[i in bData.IDList, t in td:T]);
@@ -55,11 +75,13 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
         sphatsum[i,t] - dData.pd[i][t] == sum(p[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, qBalance[i in fData.IDList, t in td:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lq[i,t] +
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
-    @constraint(mp, lineThermal[k in fData.brList, t in td:T; ((k[1],k[2]) != ωd)&((k[2],k[1]) != ωd)], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
-    @constraint(mp, lineDown[k in fData.brList, t in td:T; ((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd)], p[k,t]^2 + q[k,t]^2 <= 0);
-    @constraint(mp, powerflow[k in fData.brList, t in td:T; ((k[1],k[2]) != ωd)&((k[2],k[1]) != ωd)], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
-    @constraint(mp, rampUp[i in fData.genIDList, t in td:T; i != ωd], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
-    @constraint(mp, rampDown[i in fData.genIDList, t in td:T; i != ωd], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
+    @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
+    @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
+    @constraint(mp, lineThermal[k in fData.brList, t in td:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2*Bparams[k,t]);
+    @constraint(mp, powerflow1[k in fData.brList, t in td:T], v[k[2],t] <= v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]) + (1 - Bparams[k,t])*bigM);
+    @constraint(mp, powerflow2[k in fData.brList, t in td:T], v[k[2],t] >= v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]) - (1 - Bparams[k,t])*bigM);
+    @constraint(mp, rampUp[i in fData.genIDList, t in td:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i] + bigM*(1 - Bparams[i,t]));
+    @constraint(mp, rampDown[i in fData.genIDList, t in td:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i] - bigM*(1 - Bparams[i,t]));
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
     @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
@@ -159,15 +181,25 @@ function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, prevSol
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
 
-    for ω in Ω
-        # solve the later stage problem
-        cutCurrent = fBuild_D(td, ω, prevSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+    cutCurrentData = pmap(ω -> fBuild_D(td, ω, prevSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict), Ω);
+    for ωInd in 1:length(Ω)
+        ω = Ω[ωInd];
         if (td,ω) in keys(cutDict)
-            push!(cutDict[td,ω],cutCurrent);
+            push!(cutDict[td,ω],cutCurrentData[ωInd]);
         else
-            cutDict[td,ω] = [cutCurrent];
+            cutDict[td,ω] = [cutCurrentData[ωInd]];
         end
     end
+
+    # for ω in Ω
+    #     # solve the later stage problem
+    #     cutCurrent = fBuild_D(td, ω, prevSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+    #     if (td,ω) in keys(cutDict)
+    #         push!(cutDict[td,ω],cutCurrent);
+    #     else
+    #         cutDict[td,ω] = [cutCurrent];
+    #     end
+    # end
     return cutDict;
 end
 

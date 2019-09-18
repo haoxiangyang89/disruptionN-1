@@ -43,7 +43,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
 
     @variable(mp, p[k in fData.brList, t in 1:T]);
     @variable(mp, q[k in fData.brList, t in 1:T]);
-    @variable(mp, fData.Vmin[i] <= v[i in fData.IDList, t in 1:T] <= fData.Vmax[i]);
+    @variable(mp, fData.Vmin[i]^2 <= v[i in fData.IDList, t in 1:T] <= fData.Vmax[i]^2);
     @variable(mp, 0 <= w[i in bData.IDList, t in 0:T] <= bData.cap[i]);
     @variable(mp, y[i in bData.IDList, t in 1:T]);
     @variable(mp, zp[i in bData.IDList, t in 1:T]);
@@ -58,6 +58,8 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         sphatsum[i,t] - dData.pd[i][t] == sum(p[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, qBalance[i in fData.IDList, t in 1:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lq[i,t] +
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
+    @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
+    @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
     @constraint(mp, lineThermal[k in fData.brList, t in 1:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
     @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
@@ -165,6 +167,25 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
     end
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
+    Bparams = Dict();
+    for t in td:T
+        # create B parameters
+        for k in fData.brList
+            # if the line is disrupted and it is within disruption time
+            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+                Bparams[k,t] = 0;
+            else
+                Bparams[k,t] = 1;
+            end
+        end
+        for i in fData.genIDList
+            if (i == ωd)&(t <= td + τ)
+                Bparams[i,t] = 0;
+            else
+                Bparams[i,t] = 1;
+            end
+        end
+    end
 
     mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
 
@@ -196,7 +217,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
 
     @variable(mp, p[k in fData.brList, t in td:T]);
     @variable(mp, q[k in fData.brList, t in td:T]);
-    @variable(mp, fData.Vmin[i] <= v[i in fData.IDList, t in td:T] <= fData.Vmax[i]);
+    @variable(mp, fData.Vmin[i]^2 <= v[i in fData.IDList, t in td:T] <= fData.Vmax[i]^2);
     @variable(mp, 0 <= w[i in bData.IDList, t in (td - 1):T] <= bData.cap[i]);
     @variable(mp, y[i in bData.IDList, t in td:T]);
     @variable(mp, zp[i in bData.IDList, t in td:T]);
@@ -207,15 +228,18 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     @variable(mp, θ[tp in (td + τ + 1):T, ω in Ω]);
 
     # set up the constraints
+    bigM = 1000;
     @constraint(mp, pBalance[i in fData.IDList, t in td:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lp[i,t] +
         sphatsum[i,t] - dData.pd[i][t] == sum(p[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, qBalance[i in fData.IDList, t in td:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lq[i,t] +
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
-    @constraint(mp, lineThermal[k in fData.brList, t in td:T; ((k[1],k[2]) != ωd)&((k[2],k[1]) != ωd)], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
-    @constraint(mp, lineDown[k in fData.brList, t in td:T; ((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd)], p[k,t]^2 + q[k,t]^2 <= 0);
-    @constraint(mp, powerflow[k in fData.brList, t in td:T; ((k[1],k[2]) != ωd)&((k[2],k[1]) != ωd)], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
-    @constraint(mp, rampUp[i in fData.genIDList, t in td:T; i != ωd], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
-    @constraint(mp, rampDown[i in fData.genIDList, t in td:T; i != ωd], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
+    @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
+    @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
+    @constraint(mp, lineThermal[k in fData.brList, t in td:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2*Bparams[k,t]);
+    @constraint(mp, powerflow1[k in fData.brList, t in td:T], v[k[2],t] <= v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]) + (1 - Bparams[k,t])*bigM);
+    @constraint(mp, powerflow2[k in fData.brList, t in td:T], v[k[2],t] >= v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]) - (1 - Bparams[k,t])*bigM);
+    @constraint(mp, rampUp[i in fData.genIDList, t in td:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i] + bigM*(1 - Bparams[i,t]));
+    @constraint(mp, rampDown[i in fData.genIDList, t in td:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i] - bigM*(1 - Bparams[i,t]));
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
     @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
@@ -324,6 +348,57 @@ function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr
     return sol,objV;
 end
 
+function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
+    disT = 1;
+    ωd = 0;
+    costn = 0;
+    solHist = [];
+    currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
+    while disT <= T
+        # solve the current stage problem, state variables are passed
+        nowT = disT;
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        push!(solHist,(currentSol,nowT,ωd));
+
+        # generate disruption
+        tp,ωd = genScenario(pDistr);
+        if nowT == 1
+            currentLB = objV;
+            disT += tp;
+            disT = min(disT, T + 1);
+            # calculate the cost of the solution until the next disruption time
+            costn += sum(sum(fData.cz*(currentSol.lp[i,t] + currentSol.lq[i,t]) for i in fData.IDList) for t in nowT:(disT - 1)) +
+                sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
+            for t in nowT:(disT - 1)
+                for i in fData.genIDList
+                    # add generator cost
+                    if fData.cp[i].n == 3
+                        costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
+                    elseif fData.cp[i].n == 2
+                        costn += fData.cp[i].params[1]*currentSol.sp[i,t];
+                    end
+                end
+            end
+        else
+            disT += tp + τ;
+            disT = min(disT, T + 1);
+            # calculate the cost of the solution until the next disruption time
+            costn += sum(sum(fData.cz*(currentSol.lp[i,t] + currentSol.lq[i,t]) for i in fData.IDList) for t in nowT:(disT - 1));
+            for t in nowT:(disT - 1)
+                for i in fData.genIDList
+                    # add generator cost
+                    if fData.cp[i].n == 3
+                        costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
+                    elseif fData.cp[i].n == 2
+                        costn += fData.cp[i].params[1]*currentSol.sp[i,t];
+                    end
+                end
+            end
+        end
+    end
+    return [solHist,costn];
+end
+
 function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
     # execution of forward pass
     # input: N: the number of trial points;
@@ -333,56 +408,12 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
     costDict = Dict();
     objV = 0;
     currentLB = 0;
-    for n in 1:N
-        # for each trial path
-        disT = 1;
-        ωd = 0;
-        costn = 0;
-        solHist = [];
-        currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
-        while disT <= T
-            # solve the current stage problem, state variables are passed
-            nowT = disT;
-            currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
-            push!(solHist,(currentSol,nowT,ωd));
-
-            # generate disruption
-            tp,ωd = genScenario(pDistr);
-            if nowT == 1
-                currentLB = objV;
-                disT += tp;
-                # calculate the cost of the solution until the next disruption time
-                costn += sum(sum(fData.cz*(currentSol.lp[i,t] + currentSol.lq[i,t]) for i in fData.IDList) for t in nowT:(disT - 1)) +
-                    sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
-                for t in nowT:(disT - 1)
-                    for i in fData.genIDList
-                        # add generator cost
-                        if fData.cp[i].n == 3
-                            costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
-                        elseif fData.cp[i].n == 2
-                            costn += fData.cp[i].params[1]*currentSol.sp[i,t];
-                        end
-                    end
-                end
-            else
-                disT += tp + τ;
-                disT = min(disT, T + 1);
-                # calculate the cost of the solution until the next disruption time
-                costn += sum(sum(fData.cz*(currentSol.lp[i,t] + currentSol.lq[i,t]) for i in fData.IDList) for t in nowT:(disT - 1));
-                for t in nowT:(disT - 1)
-                    for i in fData.genIDList
-                        # add generator cost
-                        if fData.cp[i].n == 3
-                            costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
-                        elseif fData.cp[i].n == 2
-                            costn += fData.cp[i].params[1]*currentSol.sp[i,t];
-                        end
-                    end
-                end
-            end
-        end
-        solDict[n] = solHist;
-        costDict[n] = costn;
-    end
+    # for n in 1:N
+    #     # for each trial path
+    #     returnData = buildPath(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict);
+    #     solDict[n] = returnData[1];
+    #     costDict[n] = returnData[2];
+    # end
+    returnData = pmap(buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict), 1:N);
     return solDict, currentLB, costDict;
 end

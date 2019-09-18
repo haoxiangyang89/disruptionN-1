@@ -8,11 +8,13 @@ function solveMain(τ, T, fData, pDistr, bData, dData, N, printLog = false, iter
     iterNo = 0;
     cutDict = Dict();
     keepIter = true;
+    LBHist = [];
     # while the termination criteria is not met
     while (keepIter)&(iterNo <= iterMax)
         iterNo += 1;
         # forward pass: obtain the trial paths
         trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict);
+        push!(LBHist,currentLB);
         currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
         currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
         currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
