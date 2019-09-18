@@ -1,5 +1,7 @@
 # running scripts
-include("loadMod.jl");
+using Distributed;
+addprocs(20);
+@everywhere include("./src/loadMod.jl");
 
 fileAdd = "./test/case13_ieee.m";
 fData = readStatic(fileAdd);
@@ -14,3 +16,4 @@ bData = readBattery(bAdd,"csv");
 τ = 4;
 T = dData.T;
 Δt = 0.25;
+N = 10;

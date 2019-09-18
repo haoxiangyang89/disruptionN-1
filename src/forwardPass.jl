@@ -396,7 +396,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
             end
         end
     end
-    return [solHist,costn];
+    return [solHist,currentLB,costn];
 end
 
 function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
@@ -410,10 +410,15 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
     currentLB = 0;
     # for n in 1:N
     #     # for each trial path
-    #     returnData = buildPath(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict);
+    #     returnData = buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict);
     #     solDict[n] = returnData[1];
     #     costDict[n] = returnData[2];
     # end
-    returnData = pmap(buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict), 1:N);
+    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict), 1:N);
+    for n in 1:N
+        solDict[n] = returnData[n][1];
+        costDict[n] = returnData[n][3];
+    end
+    currentLB = returnData[1][2];
     return solDict, currentLB, costDict;
 end
