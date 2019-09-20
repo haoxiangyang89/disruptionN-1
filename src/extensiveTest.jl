@@ -14,6 +14,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     # extensive formulation could not have variable/constraint names
     # inheritData: [1]: sp, [2]: w, [3]: u (only contains the information for the linking time period)
 
+    println("========= Disruption time $(td), scenario $(ωd) modeling =========");
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
