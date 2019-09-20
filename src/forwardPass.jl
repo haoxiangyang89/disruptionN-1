@@ -1,9 +1,138 @@
 using JuMP, Gurobi, Ipopt;
 
+function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
+    # deterministic formulation
+    T = dData.T;
+    Rdict = Dict();
+    Xdict = Dict();
+    for k in fData.brList
+        Rdict[k] = fData.g[k]/(fData.g[k]^2 + fData.b[k]^2);
+        Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
+    end
+
+    # construct the first stage without disruption occurring
+    mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
+
+    # set up the variables
+    @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
+    @variable(mp, fData.Qmin[i] <= sq[i in fData.genIDList, t in 1:T] <= fData.Qmax[i]);
+    sphatsum = Dict();
+    for t in 1:T
+        for i in fData.IDList
+            sphatsum[i,t] = @expression(mp,0.0);
+            if i in keys(fData.LocRev)
+                for j in fData.LocRev[i]
+                    sphatsum[i,t] += sp[j,t];
+                end
+            end
+        end
+    end
+    sqhatsum = Dict();
+    for t in 1:T
+        for i in fData.IDList
+            sqhatsum[i,t] = @expression(mp,0.0);
+            if i in keys(fData.LocRev)
+                for j in fData.LocRev[i]
+                    sqhatsum[i,t] += sq[j,t];
+                end
+            end
+        end
+    end
+
+    @variable(mp, p[k in fData.brList, t in 1:T]);
+    @variable(mp, q[k in fData.brList, t in 1:T]);
+    @variable(mp, fData.Vmin[i]^2 <= v[i in fData.IDList, t in 1:T] <= fData.Vmax[i]^2);
+    @variable(mp, 0 <= w[i in bData.IDList, t in 0:T] <= bData.cap[i]);
+    @variable(mp, y[i in bData.IDList, t in 1:T]);
+    @variable(mp, zp[i in bData.IDList, t in 1:T]);
+    @variable(mp, zq[i in bData.IDList, t in 1:T]);
+    @variable(mp, lp[i in fData.IDList, t in 1:T] >= 0);
+    @variable(mp, lq[i in fData.IDList, t in 1:T] >= 0);
+    @variable(mp, u[i in bData.IDList] >= 0);
+
+    # set up the constraints
+    @constraint(mp, pBalance[i in fData.IDList, t in 1:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lp[i,t] +
+        sphatsum[i,t] - dData.pd[i][t] == sum(p[k,t] for k in fData.branchDict1[i]));
+    @constraint(mp, qBalance[i in fData.IDList, t in 1:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lq[i,t] +
+        sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
+    @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
+    @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
+    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
+    @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
+    @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
+    @constraint(mp, rampDown[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
+    @constraint(mp, bInv[i in bData.IDList, t in 1:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
+    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
+    @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in 1:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
+    @constraint(mp, bInvmax[i in bData.IDList, t in 1:T], w[i,t] <= bData.cap[i]);
+    @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
+
+    # deterministic objective function
+    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
+        fData.cz*sum(sum(lp[i,t] + lq[i,t] for i in fData.IDList) for t in 1:T));
+    for t in 1:T
+        for i in fData.genIDList
+            # add generator cost
+            if fData.cp[i].n == 3
+                objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
+            elseif fData.cp[i].n == 2
+                objExpr += fData.cp[i].params[1]*sp[i,t];
+            end
+        end
+    end
+
+    @objective(mp, Min, objExpr);
+
+    if solveOpt
+        # solve the problem
+        optimize!(mp);
+        mpObj = objective_value(mp);
+        # obtain the solutions
+        solSp = Dict();
+        solSq = Dict();
+        solw = Dict();
+        solu = Dict();
+        solLp = Dict();
+        solLq = Dict();
+        solv = Dict();
+        solP = Dict();
+        solQ = Dict();
+        soly = Dict();
+        solzp = Dict();
+        solzq = Dict();
+        for t in 1:T
+            for i in fData.genIDList
+                solSp[i,t] = value(sp[i,t]);
+                solSq[i,t] = value(sq[i,t]);
+            end
+            for i in bData.IDList
+                solu[i] = value(u[i]);
+                solw[i,t] = value(w[i,t]);
+                soly[i,t] = value(y[i,t]);
+                solzp[i,t] = value(zp[i,t]);
+                solzq[i,t] = value(zq[i,t]);
+            end
+            for i in fData.IDList
+                solLp[i,t] = value(lp[i,t]);
+                solLq[i,t] = value(lq[i,t]);
+                solv[i,t] = value(v[i,t]);
+            end
+            for k in fData.brList
+                solP[k,t] = value(p[k,t]);
+                solQ[k,t] = value(q[k,t]);
+            end
+        end
+
+        sol = solData(solSp,solSq,solw,solu,solLp,solLq,solv,solP,solQ,soly,solzp,solzq);
+        return sol,mpObj;
+    else
+        return mp;
+    end
+end
+
 # forward pass of the SDDP algorithm
 function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
     # precalculate data
-    T = dData.T;
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
@@ -159,7 +288,6 @@ end
 
 function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
     # precalculate data
-    T = dData.T;
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
@@ -353,6 +481,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
     ωd = 0;
     costn = 0;
     solHist = [];
+    currentLB = 0;
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
         # solve the current stage problem, state variables are passed
