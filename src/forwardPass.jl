@@ -123,7 +123,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
             end
         end
 
-        sol = solData(solSp,solSq,solw,solu,solLp,solLq,solv,solP,solQ,soly,solzp,solzq);
+        sol = [solSp,solSq,solw,solu,solLp,solLq,solv,solP,solQ,soly,solzp,solzq];
         return sol,mpObj;
     else
         return mp;
@@ -314,12 +314,15 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
             end
         end
     end
+    for i in fData.genIDList
+        Bparams[i,td - 1] = 1;
+    end
 
     mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
 
     # set up the variables
-    @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]);
-    @variable(mp, fData.Qmin[i] <= sq[i in fData.genIDList,t in (td - 1):T] <= fData.Qmax[i]);
+    @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
+    @variable(mp, fData.Qmin[i]*Bparams[i,t] <= sq[i in fData.genIDList,t in (td - 1):T] <= fData.Qmax[i]*Bparams[i,t]);
     sphatsum = Dict();
     for t in td:T
         for i in fData.IDList

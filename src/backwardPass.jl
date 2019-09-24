@@ -1,7 +1,6 @@
 # backward pass of the SDDP algorithm
 function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
     # precalculate data
-    T = dData.T;
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
@@ -27,6 +26,9 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
                 Bparams[i,t] = 1;
             end
         end
+    end
+    for i in fData.genIDList
+        Bparams[i,td - 1] = 1;
     end
 
     mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));

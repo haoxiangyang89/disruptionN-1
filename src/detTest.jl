@@ -1,6 +1,6 @@
 # test 2: deterministic vs. stochastic
 startTD = time();
-solData,objV = detBuild(Δt, T, fData, bData, dData);
+solOut,objV = detBuild(Δt, T, fData, bData, dData);
 elapsedTD = time() - startTD;
 
 N = 10;

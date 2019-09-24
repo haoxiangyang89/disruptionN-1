@@ -29,7 +29,7 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, printLog = false,
         else
             cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict);
         end
-        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = $(round(mean(currentUBList),2)) +/- $(round(1.96*std(currentUBList),2)) =========")
+        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,digits = 2)), UB = [$(round(currentUBl,digits = 2)),$(round(currentUBu,digits = 2))] =========")
     end
     return cutDict,LBHist,UBHist,UBuHist,UBlHist;
 end
