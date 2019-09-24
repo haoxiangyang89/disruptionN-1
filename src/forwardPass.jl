@@ -322,7 +322,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
-    @variable(mp, fData.Qmin[i]*Bparams[i,t] <= sq[i in fData.genIDList,t in (td - 1):T] <= fData.Qmax[i]*Bparams[i,t]);
+    @variable(mp, fData.Qmin[i]*Bparams[i,t] <= sq[i in fData.genIDList,t in td:T] <= fData.Qmax[i]*Bparams[i,t]);
     sphatsum = Dict();
     for t in td:T
         for i in fData.IDList
