@@ -1,3 +1,5 @@
+# baseMVA = 100
+
 #N,K,CT,DT, CTB, DTB,	V_lb 	V_ub
 #Cont_Tech_ind values has value 0 and >=1 for each type of technology
 #Node# NodeName   Slots   Cont_Tech_type_ind   Disc_Tech_Ind   Cont_Tech_Bat   Disc_Tech_Bat   Volt_lb   Volt_ub

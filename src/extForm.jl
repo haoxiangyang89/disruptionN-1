@@ -32,12 +32,12 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     end
 
     # set up the variables
-    sp = Dict();
-    sq = Dict();
+    spDict = Dict();
+    sqDict = Dict();
     for i in fData.genIDList
         for t in (td - 1):T
-            sp[i,t] = @variable(mp, lower_bound = fData.Pmin[i],  upper_bound = fData.Pmax[i]);
-            sq[i,t] = @variable(mp, lower_bound = fData.Qmin[i],  upper_bound = fData.Qmax[i]);
+            spDict[i,t] = @variable(mp, lower_bound = fData.Pmin[i],  upper_bound = fData.Pmax[i]);
+            sqDict[i,t] = @variable(mp, lower_bound = fData.Qmin[i],  upper_bound = fData.Qmax[i]);
         end
     end
     sphatsum = Dict();
@@ -46,7 +46,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
             sphatsum[i,t] = @expression(mp,0.0);
             if i in keys(fData.LocRev)
                 for j in fData.LocRev[i]
-                    sphatsum[i,t] += sp[j,t];
+                    sphatsum[i,t] += spDict[j,t];
                 end
             end
         end
@@ -57,7 +57,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
             sqhatsum[i,t] = @expression(mp,0.0);
             if i in keys(fData.LocRev)
                 for j in fData.LocRev[i]
-                    sqhatsum[i,t] += sq[j,t];
+                    sqhatsum[i,t] += sqDict[j,t];
                 end
             end
         end
@@ -90,10 +90,10 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
         wDict[i,td - 1] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
         uDict[i] = @variable(mp, lower_bound = 0);
         for t in td:T
-            wDict[i,td] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
-            yDict[i,td] = @variable(mp);
-            zpDict[i,td] = @variable(mp);
-            zqDict[i,td] = @variable(mp);
+            wDict[i,t] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
+            yDict[i,t] = @variable(mp);
+            zpDict[i,t] = @variable(mp);
+            zqDict[i,t] = @variable(mp);
         end
     end
 
@@ -108,10 +108,14 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
         end
     end
     for i in fData.genIDList
-        @constraint(mp, spDict[i,td - 1] == inheritData[1][i]);
+        if td != 1
+            @constraint(mp, spDict[i,td - 1] == inheritData[1][i]);
+        end
         for t in td:T
-            @constraint(mp, spDict[i,t] - spDict[i,t - 1] <= fData.RU[i] + bigM*(1 - Bparams[i,t]));
-            @constraint(mp, spDict[i,t] - spDict[i,t - 1] >= fData.RD[i] - bigM*(1 - Bparams[i,t]));
+            if t != 1
+                @constraint(mp, spDict[i,t] - spDict[i,t - 1] <= fData.RU[i] + bigM*(1 - Bparams[i,t]));
+                @constraint(mp, spDict[i,t] - spDict[i,t - 1] >= fData.RD[i] - bigM*(1 - Bparams[i,t]));
+            end
         end
     end
     for k in fData.brList
@@ -124,15 +128,17 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
         end
     end
     for i in bData.IDList
-        @constraint(mp, uDict[i] == inheritData[3][i]);
+        if td != 1
+            @constraint(mp, uDict[i] == inheritData[3][i]);
+        end
+        @constraint(mp, wDict[i,td - 1] == inheritData[2][i]);
         for t in td:T
-            @constraint(mp, wDict[i,t] == w[Dicti,t-1] - yDict[i,t]*Δt);
+            @constraint(mp, wDict[i,t] == wDict[i,t - 1] - yDict[i,t]*Δt);
             @constraint(mp, zpDict[i,t]^2 + zqDict[i,t]^2 <= uDict[i]^2);
             for l in 1:length(bData.ηα[i])
                 @constraint(mp, zpDict[i,t] <= bData.ηα[i][l]*yDict[i,t] + bData.ηβ[i][l]);
             end
             @constraint(mp, wDict[i,t] <= bData.cap[i]);
-            @constraint(mp, wDict[i,td - 1] == inheritData[2][i]);
         end
     end
 
@@ -171,7 +177,6 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                 end
                 for ω in Ω
                     objExpr += baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω]*dExpr;
-                    inheritData = [];
                     spInherit = Dict();
                     wInherit = Dict();
                     uInherit = Dict();
@@ -182,6 +187,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                         wInherit[i] = wDict[i,td + tp - 1];
                         uInherit[i] = uDict[i];
                     end
+                    inheritData = [spInherit,wInherit,uInherit];
                     mp = extForm(mp, td + tp, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
                 end
             end
@@ -218,7 +224,6 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                 end
                 for ω in Ω
                     objExpr += baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω]*dExpr;
-                    inheritData = [];
                     spInherit = Dict();
                     wInherit = Dict();
                     uInherit = Dict();
@@ -229,6 +234,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                         wInherit[i] = wDict[i,td + tp + τ - 1];
                         uInherit[i] = uDict[i];
                     end
+                    inheritData = [spInherit,wInherit,uInherit];
                     mp = extForm(mp, td + tp + τ, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
                 end
             end
