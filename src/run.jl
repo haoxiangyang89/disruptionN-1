@@ -5,15 +5,15 @@ addprocs(20);
 
 fileAdd = "./test/case13_ieee.m";
 fData = readStatic(fileAdd);
-disAdd = "./test/testProbRead.csv"
+disAdd = "./test/testProbRead_96.csv"
 pDistr = readDisruption(disAdd,"csv");
-pAdd = "./test/testDataP.csv";
-qAdd = "./test/testDataQ.csv";
+pAdd = "./test/testDataP_96.csv";
+qAdd = "./test/testDataQ_96.csv";
 dData = readDemand(pAdd,qAdd,"csv");
 bAdd = "./test/testDataB.csv";
 bData = readBattery(bAdd,"csv");
 
-τ = 4;
-T = dData.T;
+τ = 16;
+T = 96;
 Δt = 0.25;
-N = 10;
+N = 50;

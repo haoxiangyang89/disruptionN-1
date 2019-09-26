@@ -187,12 +187,18 @@ function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, trialPa
     paraSet = Iterators.product(Ω,matchedTrial);
 
     cutCurrentData = pmap(item -> fBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, fData, bData, dData, pDistr, cutDict), paraSet);
-    for ωInd in 1:length(Ω)
-        ω = Ω[ωInd];
-        if (td,ω) in keys(cutDict)
-            push!(cutDict[td,ω],cutCurrentData[ωInd]);
-        else
-            cutDict[td,ω] = [cutCurrentData[ωInd]];
+    # cutCurrentData is a list
+    for ω in Ω
+        itemInd = 0;
+        for item in paraSet
+            itemInd += 1;
+            if item[1] == ω
+                if (td,ω) in keys(cutDict)
+                    push!(cutDict[td,ω],cutCurrentData[itemInd]);
+                else
+                    cutDict[td,ω] = [cutCurrentData[itemInd]];
+                end
+            end
         end
     end
 
@@ -224,7 +230,9 @@ function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDic
                 push!(matchedTrial,n);
             end
         end
-        cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict);
+        if trialPaths != []
+            cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict);
+        end
         println("Time $(t) Passed");
     end
     return cutDict;
