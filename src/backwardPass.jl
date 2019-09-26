@@ -1,5 +1,7 @@
 # backward pass of the SDDP algorithm
-function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+    prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
+    currentSol = currentPath[prevtpInd][1];
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -179,11 +181,12 @@ function fBuild_D(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, 
     end
 end
 
-function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, prevSol, cutDict)
+function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict)
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
+    paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(ω -> fBuild_D(td, ω, prevSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict), Ω);
+    cutCurrentData = pmap(item -> fBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, fData, bData, dData, pDistr, cutDict), paraSet);
     for ωInd in 1:length(Ω)
         ω = Ω[ωInd];
         if (td,ω) in keys(cutDict)
@@ -215,17 +218,14 @@ function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDic
         tpDict[n] = [trialPaths[n][i][2] for i in 1:length(trialPaths[n])];
     end
     for t in T:-1:2
+        matchedTrial = [];
         for n in keys(trialPaths)
-            currentPath = trialPaths[n];
             if t in tpDict[n]
-                # if the disruption time is in the trial path, generate cuts
-                # using the solution from the previous disruption
-                prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < t]);
-                prevSol = currentPath[prevtpInd][1];
-                cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, prevSol, cutDict);
-                println("Time $(t) Trial $(n) Passed");
+                push!(matchedTrial,n);
             end
         end
+        cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict);
+        println("Time $(t) Passed");
     end
     return cutDict;
 end

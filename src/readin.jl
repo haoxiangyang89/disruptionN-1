@@ -561,7 +561,7 @@ function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,P
     return fData
 end
 
-function readStatic(fileName::String, cz = 20)
+function readStatic(fileName::String, cz = 1e7)
     # read in the static network information from a .m file (MatPower)
     busST,genST,brST,cST,uST,baseMVA = readMP(fileAdd);
     IDList,Vmax,Vmin,gs,bs,Vmag,Vang,Pd,Qd,bType = parsebusST(busST,baseMVA);

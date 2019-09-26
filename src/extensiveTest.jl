@@ -5,7 +5,7 @@ optimize!(mp);
 elapsedTE = time() - startTE;
 mpObj = objective_value(mp);
 
-N = 10;
+N = 50;
 startT = time();
-cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N);
+cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 100);
 elapsedT = time() - startT;
