@@ -625,7 +625,7 @@ function readDisruption(fileName,fileType)
                 ωDistrn[disN] = dataOme[2,oInd];
             end
         end
-        if sum(values(ωDistrn)) == 1
+        if abs(sum(values(ωDistrn)) - 1) <= 1e-6
             pDistr = probDistrn(tDistrn,ωDistrn);
             return pDistr;
         else
