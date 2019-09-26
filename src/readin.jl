@@ -625,11 +625,12 @@ function readDisruption(fileName,fileType)
                 ωDistrn[disN] = dataOme[2,oInd];
             end
         end
-        if abs(sum(values(ωDistrn)) - 1) <= 1e-6
+        if sum(values(ωDistrn)) == 1
             pDistr = probDistrn(tDistrn,ωDistrn);
             return pDistr;
         else
-            println("Please input the right probability measure");
+            ωList = [item for item in keys(ωDistrn)];
+            ωDistrn[ωList[1]] = 1 - sum([ωDistrn[item] for item in keys(ωDistrn) if item != ωList[1]]);
         end
     else
         println("Currently your file type is not supported");
