@@ -631,6 +631,8 @@ function readDisruption(fileName,fileType)
         else
             ωList = [item for item in keys(ωDistrn)];
             ωDistrn[ωList[1]] = 1 - sum([ωDistrn[item] for item in keys(ωDistrn) if item != ωList[1]]);
+            pDistr = probDistrn(tDistrn,ωDistrn);
+            return pDistr;
         end
     else
         println("Currently your file type is not supported");
