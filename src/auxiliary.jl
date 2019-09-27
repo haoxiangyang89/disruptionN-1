@@ -28,3 +28,31 @@ function genScenario(pDistr)
     ω = rand(ωDistrObj);
     return tSupport[t],ωSupport[ω];
 end
+
+function modifyOmega(pDistr,hardComp)
+    ωDistrNew = copy(pDistr.ωDistrn);
+    releaseProb = ωDistrNew[hardComp];
+    avgNo = length(values(pDistr.ωDistrn)) - 1;
+    for i in keys(ωDistrNew)
+        if i == hardComp
+            # if it is the hardened component
+            ωDistrNew[i] = 0;
+        else
+            ωDistrNew[i] += releaseProb/avgNo;
+        end
+    end
+    pDistrNew = probDistrn(pDistr.tDistrn,ωDistrNew);
+    return pDistrNew;
+end
+
+function modifyT(pDistr,λD,T)
+    # modify the time distribution using the given λD
+    tDistrnNew = Dict();
+    for t in 1:(T-1)
+        tDistrnNew[t] = exp(-λD*(t - 1)) - exp(-λD*t);
+    end
+    # probability of the time T+1
+    tDistrnNew[T] = 1 - sum([tDistrnNew[t] for t in 1:(T-1)]);
+    pDistrNew = probDistrn(tDistrnNew,pDistr.ωDistrn);
+    return pDistrNew;
+end

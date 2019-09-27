@@ -1,15 +1,13 @@
-using JuMP, Gurobi, Ipopt;
-
-# forward pass of the SDDP algorithm
-function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
-    # precalculate data
+# deterministic optimization models
+function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
+    # deterministic formulation
+    T = dData.T;
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
         Rdict[k] = fData.g[k]/(fData.g[k]^2 + fData.b[k]^2);
         Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
     end
-    Ω = [ω for ω in keys(pDistr.ωDistrn)];
 
     # construct the first stage without disruption occurring
     mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
@@ -50,7 +48,6 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     @variable(mp, lp[i in fData.IDList, t in 1:T] >= 0);
     @variable(mp, lq[i in fData.IDList, t in 1:T] >= 0);
     @variable(mp, u[i in bData.IDList] >= 0);
-    @variable(mp, θ[tp in 2:T, ω in Ω] >= 0);
 
     # set up the constraints
     @constraint(mp, pBalance[i in fData.IDList, t in 1:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lp[i,t] +
@@ -69,54 +66,20 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     @constraint(mp, bInvmax[i in bData.IDList, t in 1:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
 
-    # set up the cuts, here tp is the disruption time
-    for tp in 2:T
-        for ω in Ω
-            if (tp,ω) in keys(cutDict)
-                for l in 1:length(cutDict[tp,ω])
-                    @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i]*(sp[i] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i]*(w[i] - cutDict[tp,ω][l].what[i]) +
-                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
-                end
+    # deterministic objective function
+    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
+        fData.cz*sum(sum(lp[i,t] + lq[i,t] for i in fData.IDList) for t in 1:T));
+    for t in 1:T
+        for i in fData.genIDList
+            # add generator cost
+            if fData.cp[i].n == 3
+                objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
+            elseif fData.cp[i].n == 2
+                objExpr += fData.cp[i].params[1]*sp[i,t];
             end
         end
     end
 
-    # set up the objective function
-    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList));
-    for tp in 1:maximum(keys(pDistr.tDistrn))
-        dExpr = @expression(mp, 0);
-        if tp < T
-            for t in 1:tp
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + 1,ω] for ω in Ω));
-        else
-            for t in 1:T
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*dExpr;
-        end
-    end
     @objective(mp, Min, objExpr);
 
     if solveOpt
@@ -156,7 +119,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     end
 end
 
-function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOpt = true)
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -226,7 +189,6 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     @variable(mp, lp[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, lq[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, u[i in bData.IDList] >= 0);
-    @variable(mp, θ[tp in (td + τ + 1):T, ω in Ω]);
 
     # set up the constraints
     bigM = 1000;
@@ -249,53 +211,16 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     @constraint(mp, spIni[i in fData.genIDList], sp[i,td - 1] == currentSol.sp[i,td - 1]);
     @constraint(mp, uIni[i in bData.IDList], u[i] == currentSol.u[i]);
 
-    # set up the cuts, here tp is the disruption time
-    for tp in (td + τ + 1):T
-        for ω in Ω
-            if (tp,ω) in keys(cutDict)
-                for l in 1:length(cutDict[tp,ω])
-                    @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i]*(sp[i] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i]*(w[i] - cutDict[tp,ω][l].what[i]) +
-                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
-                end
-            end
-        end
-    end
-
     # set up the objective function
-    objExpr = @expression(mp, 0);
-    for tp in 1:maximum(keys(pDistr.tDistrn))
-        if tp <= T - (td + τ)
-            dExpr = @expression(mp, 0);
-            for t in td:(tp + td + τ - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
+    objExpr = @expression(mp, fData.cz*sum(sum(lp[i,t] + lq[i,t] for i in fData.IDList) for t in td:T));
+    for t in td:T
+        for i in fData.genIDList
+            # add generator cost
+            if fData.cp[i].n == 3
+                objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
+            elseif fData.cp[i].n == 2
+                objExpr += fData.cp[i].params[1]*sp[i,t];
             end
-            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + td + τ,ω] for ω in Ω));
-        else
-            dExpr = @expression(mp, 0);
-            for t in td:T
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*dExpr;
         end
     end
     @objective(mp, Min, objExpr);
@@ -337,35 +262,33 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     end
 end
 
-function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict)
+function constructDetM(td, ωd, sol, τ, Δt, T, fData, bData, dData)
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
-        sol,objV = noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict);
+        sol,objV = detBuild(Δt, T, fData, bData, dData);
     else
         # if it is f_{ht}^ω
-        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        sol,objV = fDetBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData);
     end
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
+function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr)
     disT = 1;
     ωd = 0;
     costn = 0;
     solHist = [];
-    currentLB = 0;
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        currentSol,objV = constructDetM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
         tp,ωd = genScenario(pDistr);
         if nowT == 1
-            currentLB = objV;
             disT += tp;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
@@ -398,29 +321,19 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
             end
         end
     end
-    return [solHist,currentLB,costn];
+    return [solHist,costn];
 end
 
-function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
+function exeDet(τ, T, Δt, fData, bData, dData, pDistr, N)
     # execution of forward pass
     # input: N: the number of trial points;
-    #       cutDict: set of currently generated cuts
     # output: solList: a list of solution paths
     solDict = Dict();
     costDict = Dict();
-    objV = 0;
-    currentLB = 0;
-    # for n in 1:N
-    #     # for each trial path
-    #     returnData = buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict);
-    #     solDict[n] = returnData[1];
-    #     costDict[n] = returnData[2];
-    # end
-    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict), 1:N);
+    returnData = pmap(i -> buildPathDet(τ, T, Δt, fData, bData, dData, pDistr), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
-        costDict[n] = returnData[n][3];
+        costDict[n] = returnData[n][2];
     end
-    currentLB = returnData[1][2];
-    return solDict, currentLB, costDict;
+    return solDict, costDict;
 end
