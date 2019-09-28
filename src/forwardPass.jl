@@ -12,7 +12,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
 
     # construct the first stage without disruption occurring
-    mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
+    mp = Model();
 
     # set up the variables
     @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
@@ -47,15 +47,17 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     @variable(mp, y[i in bData.IDList, t in 1:T]);
     @variable(mp, zp[i in bData.IDList, t in 1:T]);
     @variable(mp, zq[i in bData.IDList, t in 1:T]);
-    @variable(mp, lp[i in fData.IDList, t in 1:T] >= 0);
-    @variable(mp, lq[i in fData.IDList, t in 1:T] >= 0);
+    @variable(mp, lpp[i in fData.IDList, t in 1:T] >= 0);
+    @variable(mp, lqp[i in fData.IDList, t in 1:T] >= 0);
+    @variable(mp, lpm[i in fData.IDList, t in 1:T] >= 0);
+    @variable(mp, lqm[i in fData.IDList, t in 1:T] >= 0);
     @variable(mp, u[i in bData.IDList] >= 0);
     @variable(mp, θ[tp in 2:T, ω in Ω] >= 0);
 
     # set up the constraints
-    @constraint(mp, pBalance[i in fData.IDList, t in 1:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lp[i,t] +
+    @constraint(mp, pBalance[i in fData.IDList, t in 1:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lpp[i,t] - lpm[i,t] +
         sphatsum[i,t] - dData.pd[i][t] == sum(p[k,t] for k in fData.branchDict1[i]));
-    @constraint(mp, qBalance[i in fData.IDList, t in 1:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lq[i,t] +
+    @constraint(mp, qBalance[i in fData.IDList, t in 1:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lqp[i,t] - lqm[i,t] +
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
@@ -98,7 +100,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
                     end
                 end
                 # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
+                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
             end
             objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + 1,ω] for ω in Ω));
         else
@@ -112,7 +114,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
                     end
                 end
                 # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
+                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
             end
             objExpr += pDistr.tDistrn[tp]*dExpr;
         end
@@ -121,7 +123,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
 
     if solveOpt
         # solve the problem
-        optimize!(mp);
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, OutputFlag = 0));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -144,8 +146,8 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         end
         for i in fData.IDList
             for t in 1:T
-                solLp[i,t] = value(lp[i,t]);
-                solLq[i,t] = value(lq[i,t]);
+                solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
+                solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
             end
         end
 
@@ -188,7 +190,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         Bparams[i,td - 1] = 1;
     end
 
-    mp = Model(with_optimizer(Ipopt.Optimizer, print_level = 0, linear_solver = "ma27"));
+    mp = Model();
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
@@ -223,16 +225,18 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     @variable(mp, y[i in bData.IDList, t in td:T]);
     @variable(mp, zp[i in bData.IDList, t in td:T]);
     @variable(mp, zq[i in bData.IDList, t in td:T]);
-    @variable(mp, lp[i in fData.IDList, t in td:T] >= 0);
-    @variable(mp, lq[i in fData.IDList, t in td:T] >= 0);
+    @variable(mp, lpp[i in fData.IDList, t in td:T] >= 0);
+    @variable(mp, lqp[i in fData.IDList, t in td:T] >= 0);
+    @variable(mp, lpm[i in fData.IDList, t in td:T] >= 0);
+    @variable(mp, lqm[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, u[i in bData.IDList] >= 0);
     @variable(mp, θ[tp in (td + τ + 1):T, ω in Ω]);
 
     # set up the constraints
     bigM = 1000;
-    @constraint(mp, pBalance[i in fData.IDList, t in td:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lp[i,t] +
+    @constraint(mp, pBalance[i in fData.IDList, t in td:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lpp[i,t] - lpm[i,t] +
         sphatsum[i,t] - dData.pd[i][t] == sum(p[k,t] for k in fData.branchDict1[i]));
-    @constraint(mp, qBalance[i in fData.IDList, t in td:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lq[i,t] +
+    @constraint(mp, qBalance[i in fData.IDList, t in td:T], sum(zq[b,t] for b in bData.IDList if bData.Loc[b] == i) + lqp[i,t] - lqm[i,t] +
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
@@ -278,7 +282,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
                     end
                 end
                 # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
+                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
             end
             objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + td + τ,ω] for ω in Ω));
         else
@@ -293,7 +297,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
                     end
                 end
                 # add load shed cost
-                dExpr += fData.cz*(sum(lp[i,t] + lq[i,t] for i in fData.IDList));
+                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
             end
             objExpr += pDistr.tDistrn[tp]*dExpr;
         end
@@ -302,7 +306,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
 
     if solveOpt
         # solve the problem
-        optimize!(mp);
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, OutputFlag = 0));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -325,8 +329,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         end
         for i in fData.IDList
             for t in td:T
-                solLp[i,t] = value(lp[i,t]);
-                solLq[i,t] = value(lq[i,t]);
+                solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
+                solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
             end
         end
 
@@ -369,7 +373,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
             disT += tp;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
-            costn += sum(sum(fData.cz*(currentSol.lp[i,t] + currentSol.lq[i,t]) for i in fData.IDList) for t in nowT:(disT - 1)) +
+            costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1)) +
                 sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
             for t in nowT:(disT - 1)
                 for i in fData.genIDList
@@ -385,7 +389,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
             disT += tp + τ;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
-            costn += sum(sum(fData.cz*(currentSol.lp[i,t] + currentSol.lq[i,t]) for i in fData.IDList) for t in nowT:(disT - 1));
+            costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1));
             for t in nowT:(disT - 1)
                 for i in fData.genIDList
                     # add generator cost
