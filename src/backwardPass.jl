@@ -74,7 +74,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
     @variable(mp, lpm[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, lqm[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, u[i in bData.IDList] >= 0);
-    @variable(mp, θ[tp in (td + τ + 1):T, ω in Ω]);
+    @variable(mp, θ[tp in (td + τ + 1):T, ω in Ω] >= 0);
 
     # set up the constraints
     @constraint(mp, pBalance[i in fData.IDList, t in td:T], sum(zp[b,t] for b in bData.IDList if bData.Loc[b] == i) + lpp[i,t] - lpm[i,t] +

@@ -129,7 +129,6 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         Rdict[k] = fData.g[k]/(fData.g[k]^2 + fData.b[k]^2);
         Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
     end
-    Ω = [ω for ω in keys(pDistr.ωDistrn)];
     Bparams = Dict();
     for t in td:T
         # create B parameters
@@ -221,9 +220,9 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         for i in fData.genIDList
             # add generator cost
             if fData.cp[i].n == 3
-                global objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
+                objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
             elseif fData.cp[i].n == 2
-                global objExpr += fData.cp[i].params[1]*sp[i,t];
+                objExpr += fData.cp[i].params[1]*sp[i,t];
             end
         end
     end
