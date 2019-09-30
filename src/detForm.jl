@@ -109,12 +109,12 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         end
         for i in fData.IDList
             for t in 1:T
-                if (lpp[i,t] > 1e-8)|(lpm[i,t] > 1e-8)
+                if (value(lpp[i,t]) > 1e-8)|(value(lpm[i,t]) > 1e-8)
                     solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (lqp[i,t] > 1e-8)|(lqm[i,t] > 1e-8)
+                if (value(lqp[i,t]) > 1e-8)|(value(lqm[i,t]) > 1e-8)
                     solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
@@ -261,12 +261,12 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         end
         for i in fData.IDList
             for t in td:T
-                if (lpp[i,t] > 1e-8)|(lpm[i,t] > 1e-8)
+                if (value(lpp[i,t]) > 1e-8)|(value(lpm[i,t]) > 1e-8)
                     solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (lqp[i,t] > 1e-8)|(lqm[i,t] > 1e-8)
+                if (value(lqp[i,t]) > 1e-8)|(value(lqm[i,t]) > 1e-8)
                     solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
