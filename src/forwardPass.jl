@@ -146,8 +146,16 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         end
         for i in fData.IDList
             for t in 1:T
-                solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
-                solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
+                if (lpp[i,t] > 1e-8)|(lpm[i,t] > 1e-8)
+                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
+                else
+                    solLp[i,t] = 0;
+                end
+                if (lqp[i,t] > 1e-8)|(lqm[i,t] > 1e-8)
+                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
+                else
+                    solLq[i,t] = 0;
+                end
             end
         end
 
@@ -329,8 +337,16 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         end
         for i in fData.IDList
             for t in td:T
-                solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
-                solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
+                if (lpp[i,t] > 1e-8)|(lpm[i,t] > 1e-8)
+                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
+                else
+                    solLp[i,t] = 0;
+                end
+                if (lqp[i,t] > 1e-8)|(lqm[i,t] > 1e-8)
+                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
+                else
+                    solLq[i,t] = 0;
+                end
             end
         end
 
