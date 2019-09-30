@@ -1,10 +1,10 @@
 # test 1: compare SDDP and extensive formulation
 include("run_small.jl");
 
-mp = Model(with_optimizer(Ipopt.Optimizer, linear_solver = "ma27"));
+mp = Model();
 startTE = time();
 mp = extForm(mp, 1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr);
-optimize!(mp);
+optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, noThreads = 3, OutputFlag = 0));
 elapsedTE = time() - startTE;
 mpObj = objective_value(mp);
 

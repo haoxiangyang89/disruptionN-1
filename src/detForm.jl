@@ -86,7 +86,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, OutputFlag = 0));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -230,7 +230,7 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, OutputFlag = 0));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();

@@ -149,7 +149,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, OutputFlag = 0));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0));
         # obtain the dual solutions
         dsolλ = Dict();
         dsolγ = Dict();
