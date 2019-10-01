@@ -253,7 +253,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8));
+        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -328,33 +328,13 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
             disT += tp;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
-            costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1)) +
-                sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
-            for t in nowT:(disT - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        costn += fData.cp[i].params[1]*currentSol.sp[i,t];
-                    end
-                end
-            end
+            costn += sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
+            costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         else
             disT += tp + τ;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
-            costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1));
-            for t in nowT:(disT - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        costn += fData.cp[i].params[1]*currentSol.sp[i,t];
-                    end
-                end
-            end
+            costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         end
     end
     return [solHist,currentLB,costn];

@@ -154,3 +154,19 @@ function calObj1(mp, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u)
     end
     return objExpr;
 end
+
+function calCostF(costn, currentSol, T, fData, nowT, disT)
+    # function to calculate costs for forward pass
+    costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1));
+    for t in nowT:(disT - 1)
+        for i in fData.genIDList
+            # add generator cost
+            if fData.cp[i].n == 3
+                costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
+            elseif fData.cp[i].n == 2
+                costn += fData.cp[i].params[1]*currentSol.sp[i,t];
+            end
+        end
+    end
+    return costn;
+end
