@@ -98,7 +98,6 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     end
 
     # set up the constraints
-    bigM = 1000;
     for i in fData.IDList
         for t in td:T
             @constraint(mp, sum(zpDict[b,t] for b in bData.IDList if bData.Loc[b] == i) + lpDict[i,t] +
@@ -112,9 +111,9 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
             @constraint(mp, spDict[i,td - 1] == inheritData[1][i]);
         end
         for t in td:T
-            if t != 1
-                @constraint(mp, spDict[i,t] - spDict[i,t - 1] <= fData.RU[i] + bigM*(1 - Bparams[i,t]));
-                @constraint(mp, spDict[i,t] - spDict[i,t - 1] >= fData.RD[i] - bigM*(1 - Bparams[i,t]));
+            if (t != 1)&(Bparams[i,t] == 1)
+                @constraint(mp, spDict[i,t] - spDict[i,t - 1] <= fData.RU[i]);
+                @constraint(mp, spDict[i,t] - spDict[i,t - 1] >= fData.RD[i]);
             end
         end
     end
@@ -122,9 +121,13 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
         for t in td:T
             @constraint(mp, pDict[k,t] == -pDict[(k[2],k[1],k[3]),t]);
             @constraint(mp, qDict[k,t] == -qDict[(k[2],k[1],k[3]),t]);
-            @constraint(mp, pDict[k,t]^2 + qDict[k,t]^2 <= fData.rateA[k]^2*Bparams[k,t]);
-            @constraint(mp, vDict[k[2],t] <= vDict[k[1],t] - 2*(Rdict[k]*pDict[k,t] + Xdict[k]*qDict[k,t]) + (1 - Bparams[k,t])*bigM);
-            @constraint(mp, vDict[k[2],t] >= vDict[k[1],t] - 2*(Rdict[k]*pDict[k,t] + Xdict[k]*qDict[k,t]) - (1 - Bparams[k,t])*bigM);
+            if Bparams[k,t] == 1
+                @constraint(mp, pDict[k,t]^2 + qDict[k,t]^2 <= fData.rateA[k]^2);
+                @constraint(mp, vDict[k[2],t] == vDict[k[1],t] - 2*(Rdict[k]*pDict[k,t] + Xdict[k]*qDict[k,t]));
+            else
+                @constraint(mp, pDict[k,t] == 0);
+                @constraint(mp, qDict[k,t] == 0);
+            end
         end
     end
     for i in bData.IDList
