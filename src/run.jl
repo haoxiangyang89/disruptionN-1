@@ -5,7 +5,7 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
 fileAdd = "./test/case13_ieee.m";
-fData = readStatic(fileAdd);
+fData = readStatic(fileAdd,10000);
 disAdd = "./test/testProbRead_96.csv"
 pDistr = readDisruption(disAdd,"csv");
 pAdd = "./test/testDataP_96.csv";
