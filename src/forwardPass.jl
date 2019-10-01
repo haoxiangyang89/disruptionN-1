@@ -86,44 +86,12 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     end
 
     # set up the objective function
-    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList));
-    for tp in 1:maximum(keys(pDistr.tDistrn))
-        dExpr = @expression(mp, 0);
-        if tp < T
-            for t in 1:tp
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + 1,ω] for ω in Ω));
-        else
-            for t in 1:T
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*dExpr;
-        end
-    end
+    objExpr = calObj1(mp, td, τ, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u);
     @objective(mp, Min, objExpr);
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0, NumericFocus = 3));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -276,45 +244,12 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     end
 
     # set up the objective function
-    objExpr = @expression(mp, 0);
-    for tp in 1:maximum(keys(pDistr.tDistrn))
-        if tp <= T - (td + τ)
-            dExpr = @expression(mp, 0);
-            for t in td:(tp + td + τ - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + td + τ,ω] for ω in Ω));
-        else
-            dExpr = @expression(mp, 0);
-            for t in td:T
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*dExpr;
-        end
-    end
+    objExpr = calObj(mp, td, τ, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ);
     @objective(mp, Min, objExpr);
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0, NumericFocus = 3));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();

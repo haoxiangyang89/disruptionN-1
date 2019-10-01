@@ -111,45 +111,12 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
     end
 
     # set up the objective function
-    objExpr = @expression(mp, 0);
-    for tp in 1:maximum(keys(pDistr.tDistrn))
-        if tp <= T - (td + τ)
-            dExpr = @expression(mp, 0);
-            for t in td:(tp + td + τ - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*(dExpr + sum(pDistr.ωDistrn[ω]*θ[tp + td + τ,ω] for ω in Ω));
-        else
-            dExpr = @expression(mp, 0);
-            for t in td:T
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        dExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        dExpr += fData.cp[i].params[1]*sp[i,t];
-                    end
-                end
-                # add load shed cost
-                dExpr += fData.cz*(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList));
-            end
-            objExpr += pDistr.tDistrn[tp]*dExpr;
-        end
-    end
+    objExpr = calObj(mp, td, τ, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ);
     @objective(mp, Min, objExpr);
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0, QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9));
         # obtain the dual solutions
         dsolλ = Dict();
         dsolγ = Dict();

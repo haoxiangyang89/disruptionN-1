@@ -69,18 +69,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
 
     # deterministic objective function
-    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
-        fData.cz*sum(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList) for t in 1:T));
-    for t in 1:T
-        for i in fData.genIDList
-            # add generator cost
-            if fData.cp[i].n == 3
-                objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-            elseif fData.cp[i].n == 2
-                objExpr += fData.cp[i].params[1]*sp[i,t];
-            end
-        end
-    end
+    objExpr = calObjDet(mp, T, fData, bData, sp, lpp, lqp, lpm, lqm, u);
 
     @objective(mp, Min, objExpr);
 
