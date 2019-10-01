@@ -98,6 +98,7 @@ end
 
 struct cutData
     # cut data: slope for sp, w and u and the intercept
+    solStatus :: Any
     λ :: Dict{Any,Any}
     γ :: Dict{Any,Any}
     μ :: Dict{Any,Any}

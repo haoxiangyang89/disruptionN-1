@@ -118,8 +118,9 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", print_level = 0, acceptable_tol = 1e-8));
-        println(termination_status(mp), " ", td, " ", ωd);
+        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", print_level = 0, acceptable_tol = 1e-8, max_iter = 10000));
+        mpStatus = termination_status(mp);
+        println(mpStatus, " ", td, " ", ωd);
         # obtain the dual solutions
         dsolλ = Dict();
         dsolγ = Dict();
@@ -146,7 +147,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
             solw[i] = value(w[i,td - 1]);
         end
 
-        cutTemp = cutData(dsolλ,dsolγ,dsolμ,vhat,solSp,solw,solu);
+        cutTemp = cutData(mpStatus,dsolλ,dsolγ,dsolμ,vhat,solSp,solw,solu);
         return cutTemp;
     else
         return mp;
@@ -165,10 +166,12 @@ function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, trialPa
         for item in paraSet
             itemInd += 1;
             if item[1] == ω
-                if (td,ω) in keys(cutDict)
-                    push!(cutDict[td,ω],cutCurrentData[itemInd]);
-                else
-                    cutDict[td,ω] = [cutCurrentData[itemInd]];
+                if (cutCurrentData[itemInd].solStatus == MOI.LOCALLY_SOLVED)|(cutCurrentData[itemInd].solStatus == MOI.OPTIMAL)
+                    if (td,ω) in keys(cutDict)
+                        push!(cutDict[td,ω],cutCurrentData[itemInd]);
+                    else
+                        cutDict[td,ω] = [cutCurrentData[itemInd]];
+                    end
                 end
             end
         end
