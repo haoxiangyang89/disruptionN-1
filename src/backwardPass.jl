@@ -116,7 +116,10 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0, QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
+            QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
+        #optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", print_level = 0));
+        println(termination_status(mp), " ", td, " ", ωd);
         # obtain the dual solutions
         dsolλ = Dict();
         dsolγ = Dict();

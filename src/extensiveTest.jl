@@ -5,6 +5,7 @@ mp = Model();
 startTE = time();
 mp = extForm(mp, 1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr);
 optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, noThreads = 3, OutputFlag = 0));
+    QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
 elapsedTE = time() - startTE;
 mpObj = objective_value(mp);
 

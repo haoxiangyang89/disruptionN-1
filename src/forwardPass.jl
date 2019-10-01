@@ -86,12 +86,13 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     end
 
     # set up the objective function
-    objExpr = calObj1(mp, td, τ, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u);
+    objExpr = calObj1(mp, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u);
     @objective(mp, Min, objExpr);
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0, NumericFocus = 3));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
+            QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -249,7 +250,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
 
     if solveOpt
         # solve the problem
-        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0, NumericFocus = 3));
+        optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
+            QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();

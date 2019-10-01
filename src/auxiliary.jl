@@ -115,7 +115,7 @@ function calObjDet(mp, T, fData, bData, sp, lpp, lqp, lpm, lqm, u)
     return objExpr;
 end
 
-function calObj1(mp, td, τ, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u)
+function calObj1(mp, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u)
     # function to formulate the objective function for f_1
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
 
