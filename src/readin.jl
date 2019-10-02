@@ -657,6 +657,7 @@ function readBattery(fileName,fileType)
         IDList = [];
         LocDict = Dict();
         bInv = Dict();
+        uCap = Dict();
 
         for i in 1:mb
             ID = Int64(dataRaw[i,1]);

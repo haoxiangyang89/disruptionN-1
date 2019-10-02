@@ -140,7 +140,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
         dsolμ = Dict();
         for i in fData.genIDList
             dsolλ[i] = dual(spIni[i]);
-            if abs(dsolλ[i]) < 1e-5
+            if abs(dsolλ[i]) < 1e-4
                 if dsolλ[i] > 0
                     vhat += dsolλ[i]*(-solSp[i]);
                 elseif dsolλ[i] < 0
@@ -151,7 +151,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
         end
         for i in bData.IDList
             dsolγ[i] = dual(bInvIni[i]);
-            if abs(dsolγ[i]) < 1e-5
+            if abs(dsolγ[i]) < 1e-4
                 if dsolγ[i] > 0
                     vhat += dsolγ[i]*(-solw[i]);
                 elseif dsolγ[i] < 0
@@ -159,7 +159,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
                 end
             end
             dsolμ[i] = dual(uIni[i]);
-            if abs(dsolμ[i]) < 1e-5
+            if abs(dsolμ[i]) < 1e-4
                 if dsolμ[i] > 0
                     vhat += dsolμ[i]*(-solu[i]);
                 elseif dsolμ[i] < 0
