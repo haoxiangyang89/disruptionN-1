@@ -308,13 +308,14 @@ function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
+function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = [])
     disT = 1;
     ωd = 0;
     costn = 0;
     solHist = [];
     currentLB = 0;
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
+    iter = 1;
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
@@ -322,7 +323,12 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
-        tp,ωd = genScenario(pDistr);
+        if pathList == []
+            tp,ωd = genScenario(pDistr);
+        else
+            tp,ωd = pathList[iter];
+        end
+        iter += 1;
         if nowT == 1
             currentLB = objV;
             disT += tp;
@@ -337,10 +343,11 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict)
             costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         end
     end
+    println("Path Built!");
     return [solHist,currentLB,costn];
 end
 
-function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
+function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDict = Dict())
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts
@@ -355,7 +362,12 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict)
     #     solDict[n] = returnData[1];
     #     costDict[n] = returnData[2];
     # end
-    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict), 1:N);
+    if pathDict == Dict()
+        for i in 1:N
+            pathDict[i] = [];
+        end
+    end
+    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathDict[i]), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];

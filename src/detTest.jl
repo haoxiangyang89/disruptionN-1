@@ -6,7 +6,7 @@ solDet,costDet = exeDet(τ, T, Δt, fData, bData, dData, pDistr, NN);
 listDet = [costDet[i] for i in 1:NN];
 meanDet = mean(listDet);
 sigmaDet = std(listDet);
-println(round(meanDet,digits = 2),round(meanDet - 1.96*sigmaDet,digits = 2),round(meanDet + 1.96*sigmaDet,digits = 2));
+println(round(meanDet,digits = 2)," ",round(meanDet - 1.96*sigmaDet,digits = 2)," ",round(meanDet + 1.96*sigmaDet,digits = 2));
 
 cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, 20, 100);
 solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, fData, bData, dData, pDistr, NN, cutDict);

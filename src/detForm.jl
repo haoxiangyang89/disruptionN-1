@@ -289,10 +289,11 @@ function constructDetM(td, ωd, sol, τ, Δt, T, fData, bData, dData)
     return sol,objV;
 end
 
-function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr)
+function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathList = [])
     disT = 1;
     ωd = 0;
     costn = 0;
+    iter = 0;
     solHist = [];
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
@@ -302,7 +303,12 @@ function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr)
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
-        tp,ωd = genScenario(pDistr);
+        if pathList == []
+            tp,ωd = genScenario(pDistr);
+        else
+            tp,ωd = pathList[iter];
+        end
+        iter += 1;
         if nowT == 1
             disT += tp;
             disT = min(disT, T + 1);
@@ -336,16 +342,22 @@ function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr)
             end
         end
     end
+    println("Det Path Built!");
     return [solHist,costn];
 end
 
-function exeDet(τ, T, Δt, fData, bData, dData, pDistr, N)
+function exeDet(τ, T, Δt, fData, bData, dData, pDistr, N, pathDict = Dict())
     # execution of forward pass
     # input: N: the number of trial points;
     # output: solList: a list of solution paths
     solDict = Dict();
     costDict = Dict();
-    returnData = pmap(i -> buildPathDet(τ, T, Δt, fData, bData, dData, pDistr), 1:N);
+    if pathDict == Dict()
+        for i in 1:N
+            pathDict[i] = [];
+        end
+    end
+    returnData = pmap(i -> buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathDict[i]), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][2];
