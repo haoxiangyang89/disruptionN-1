@@ -95,6 +95,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
         mpObj = objective_value(mp);
+        println("First stage, solving status $(termination_status(mp))");
         # obtain the solutions
         solSp = Dict();
         solSq = Dict();
@@ -104,14 +105,26 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         solLq = Dict();
         for i in fData.genIDList
             for t in 1:T
-                solSp[i,t] = value(sp[i,t]);
-                solSq[i,t] = value(sq[i,t]);
+                if value(sp[i,t]) > 1e-6
+                    solSp[i,t] = value(sp[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
+                if value(sq[i,t]) > 1e-6
+                    solSq[i,t] = value(sq[i,t]);
+                else
+                    solSq[i,t] = 0;
+                end
             end
         end
         for i in bData.IDList
             solu[i] = value(u[i]);
             for t in 1:T
-                solw[i,t] = value(w[i,t]);
+                if value(w[i,t]) > 1e-6
+                    solw[i,t] = value(w[i,t]);
+                else
+                    solw[i,t] = 0;
+                end
             end
         end
         for i in fData.IDList
@@ -255,6 +268,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
         mpObj = objective_value(mp);
+        println("Disruption time $(td), scenario $(ωd), solving status $(termination_status(mp))");
         # obtain the solutions
         solSp = Dict();
         solSq = Dict();
@@ -264,14 +278,26 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         solLq = Dict();
         for i in fData.genIDList
             for t in td:T
-                solSp[i,t] = value(sp[i,t]);
-                solSq[i,t] = value(sq[i,t]);
+                if value(sp[i,t]) > 1e-6
+                    solSp[i,t] = value(sp[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
+                if value(sq[i,t]) > 1e-6
+                    solSq[i,t] = value(sq[i,t]);
+                else
+                    solSq[i,t] = 0;
+                end
             end
         end
         for i in bData.IDList
             solu[i] = value(u[i]);
             for t in td:T
-                solw[i,t] = value(w[i,t]);
+                if value(w[i,t]) > 1e-6
+                    solw[i,t] = value(w[i,t]);
+                else
+                    solw[i,t] = 0;
+                end
             end
         end
         for i in fData.IDList

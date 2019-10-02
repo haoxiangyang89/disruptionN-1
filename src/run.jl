@@ -3,7 +3,7 @@ using Distributed;
 addprocs(30);
 @everywhere include("./src/loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
-pmap(i -> importIpopt(),1:4);
+pmap(i -> importIpopt(),1:30);
 
 fileAdd = "./test/case13_ieee.m";
 fData = readStatic(fileAdd,10000);

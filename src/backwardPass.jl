@@ -121,18 +121,6 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
         optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", print_level = 0, acceptable_tol = 1e-8, max_iter = 10000));
         mpStatus = termination_status(mp);
         println(mpStatus, " ", td, " ", ωd);
-        # obtain the dual solutions
-        dsolλ = Dict();
-        dsolγ = Dict();
-        dsolμ = Dict();
-        for i in fData.genIDList
-            dsolλ[i] = dual(spIni[i]);
-        end
-        for i in bData.IDList
-            dsolγ[i] = dual(bInvIni[i]);
-            dsolμ[i] = dual(uIni[i]);
-        end
-
         # obtain the primal solutions & obj value
         vhat = objective_value(mp);
         # obtain the solutions
@@ -145,6 +133,39 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
         for i in bData.IDList
             solu[i] = value(u[i]);
             solw[i] = value(w[i,td - 1]);
+        end
+        # obtain the dual solutions
+        dsolλ = Dict();
+        dsolγ = Dict();
+        dsolμ = Dict();
+        for i in fData.genIDList
+            dsolλ[i] = dual(spIni[i]);
+            if abs(dsolλ[i]) < 1e-5
+                if dsolλ[i] > 0
+                    vhat += dsolλ[i]*(-solSp[i]);
+                elseif dsolλ[i] < 0
+                    vhat += dsolλ[i]*(fData.Pmax[i] - solSp[i]);
+                end
+                dsolλ[i] = 0;
+            end
+        end
+        for i in bData.IDList
+            dsolγ[i] = dual(bInvIni[i]);
+            if abs(dsolγ[i]) < 1e-5
+                if dsolγ[i] > 0
+                    vhat += dsolγ[i]*(-solw[i]);
+                elseif dsolγ[i] < 0
+                    vhat += dsolγ[i]*(bData.cap[i] - solw[i]);
+                end
+            end
+            dsolμ[i] = dual(uIni[i]);
+            if abs(dsolμ[i]) < 1e-5
+                if dsolμ[i] > 0
+                    vhat += dsolμ[i]*(-solu[i]);
+                elseif dsolμ[i] < 0
+                    vhat += dsolμ[i]*(bData.uCap[i] - solu[i]);
+                end
+            end
         end
 
         cutTemp = cutData(mpStatus,dsolλ,dsolγ,dsolμ,vhat,solSp,solw,solu);

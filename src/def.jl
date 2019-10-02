@@ -77,6 +77,7 @@ struct batteryData
     ηβ :: Dict{Int64,Any}
     cap :: Dict{Int64,Any}
     cost :: Dict{Int64,Any}
+    uCap :: Dict{Int64,Any}
 end
 
 struct solData

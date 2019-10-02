@@ -666,7 +666,8 @@ function readBattery(fileName,fileType)
             capacity[ID] = dataRaw[i,3];
             cost[ID] = dataRaw[i,4];
             bInv[ID] = dataRaw[i,5];
-            ηparams = [j for j in dataRaw[i,6:nb] if j != ""];
+            uCap[ID] = dataRaw[i,6];
+            ηparams = [j for j in dataRaw[i,7:nb] if j != ""];
             ηα[ID] = [];
             ηβ[ID] = [];
             for j in 1:2:length(ηparams)
@@ -675,7 +676,7 @@ function readBattery(fileName,fileType)
                 push!(ηβ[ID],ηparams[j + 1]);
             end
         end
-        bData = batteryData(IDList,LocDict,bInv,ηα,ηβ,capacity,cost);
+        bData = batteryData(IDList,LocDict,bInv,ηα,ηβ,capacity,cost,uCap);
     else
         println("Currently your file type is not supported");
     end
