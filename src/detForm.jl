@@ -1,12 +1,11 @@
 # deterministic optimization models
 function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     # deterministic formulation
-    T = dData.T;
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
-        Rdict[k] = fData.g[k]/(fData.g[k]^2 + fData.b[k]^2);
-        Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
+        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2),digits = 6);
+        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2),digits = 6);
     end
 
     # construct the first stage without disruption occurring
@@ -77,9 +76,11 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
+        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
 
         mpObj = objective_value(mp);
+        println("First stage, solving status $(termination_status(mp))");
+
         # obtain the solutions
         solSp = Dict();
         solSq = Dict();
@@ -126,8 +127,8 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
-        Rdict[k] = fData.g[k]/(fData.g[k]^2 + fData.b[k]^2);
-        Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
+        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2),digits = 6);
+        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2),digits = 6);
     end
     Bparams = Dict();
     for t in td:T
@@ -233,7 +234,8 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
+        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
+        println("Disruption time $(td), scenario $(ωd), solving status $(termination_status(mp))");
 
         mpObj = objective_value(mp);
         # obtain the solutions
@@ -293,7 +295,7 @@ function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathList = [])
     disT = 1;
     ωd = 0;
     costn = 0;
-    iter = 0;
+    iter = 1;
     solHist = [];
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
@@ -315,31 +317,13 @@ function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathList = [])
             # calculate the cost of the solution until the next disruption time
             costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1)) +
                 sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
-            for t in nowT:(disT - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        costn += fData.cp[i].params[1]*currentSol.sp[i,t];
-                    end
-                end
-            end
+            costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         else
             disT += tp + τ;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
             costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1));
-            for t in nowT:(disT - 1)
-                for i in fData.genIDList
-                    # add generator cost
-                    if fData.cp[i].n == 3
-                        costn += fData.cp[i].params[1]*(currentSol.sp[i,t]^2) + fData.cp[i].params[2]*currentSol.sp[i,t];
-                    elseif fData.cp[i].n == 2
-                        costn += fData.cp[i].params[1]*currentSol.sp[i,t];
-                    end
-                end
-            end
+            costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         end
     end
     println("Det Path Built!");

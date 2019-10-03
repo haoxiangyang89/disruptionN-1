@@ -93,7 +93,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
+        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
         mpObj = objective_value(mp);
         println("First stage, solving status $(termination_status(mp))");
         # obtain the solutions
@@ -105,26 +105,14 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         solLq = Dict();
         for i in fData.genIDList
             for t in 1:T
-                if value(sp[i,t]) > 1e-6
-                    solSp[i,t] = value(sp[i,t]);
-                else
-                    solSp[i,t] = 0;
-                end
-                if value(sq[i,t]) > 1e-6
-                    solSq[i,t] = value(sq[i,t]);
-                else
-                    solSq[i,t] = 0;
-                end
+                solSp[i,t] = value(sp[i,t]);
+                solSq[i,t] = value(sq[i,t]);
             end
         end
         for i in bData.IDList
             solu[i] = value(u[i]);
             for t in 1:T
-                if value(w[i,t]) > 1e-6
-                    solw[i,t] = value(w[i,t]);
-                else
-                    solw[i,t] = 0;
-                end
+                solw[i,t] = value(w[i,t]);
             end
         end
         for i in fData.IDList
@@ -266,7 +254,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0));
+        optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
         mpObj = objective_value(mp);
         println("Disruption time $(td), scenario $(ωd), solving status $(termination_status(mp))");
         # obtain the solutions
@@ -278,26 +266,14 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         solLq = Dict();
         for i in fData.genIDList
             for t in td:T
-                if value(sp[i,t]) > 1e-6
-                    solSp[i,t] = value(sp[i,t]);
-                else
-                    solSp[i,t] = 0;
-                end
-                if value(sq[i,t]) > 1e-6
-                    solSq[i,t] = value(sq[i,t]);
-                else
-                    solSq[i,t] = 0;
-                end
+                solSp[i,t] = value(sp[i,t]);
+                solSq[i,t] = value(sq[i,t]);
             end
         end
         for i in bData.IDList
             solu[i] = value(u[i]);
             for t in td:T
-                if value(w[i,t]) > 1e-6
-                    solw[i,t] = value(w[i,t]);
-                else
-                    solw[i,t] = 0;
-                end
+                solw[i,t] = value(w[i,t]);
             end
         end
         for i in fData.IDList

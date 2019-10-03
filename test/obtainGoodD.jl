@@ -6,11 +6,24 @@ dData.qd[2] = dData.qd[2]*0.5;
 dData.pd[4] = dData.pd[4]*0.3;
 dData.qd[4] = dData.qd[4]*0.3;
 
-dData.pd[8] = dData.pd[8]*0.5;
-dData.qd[8] = dData.qd[8]*0.5;
+dData.pd[8] = dData.pd[8]*0.25;
+dData.qd[8] = dData.qd[8]*0.3;
 
-dData.pd[10] = dData.pd[10]*0.45;
-dData.qd[10] = dData.qd[10]*0.45;
+dData.pd[10] = dData.pd[10]*0.3;
+dData.qd[10] = dData.qd[10]*0.3;
+
+pdNew = zeros(length(fData.IDList),length(dData.pd[1])+1);
+qdNew = zeros(length(fData.IDList),length(dData.pd[1])+1);
+for i in fData.IDList
+   pdNew[i,1] = i;
+   qdNew[i,1] = i;
+   for t in 1:length(dData.pd[i])
+      pdNew[i,t+1] = round(dData.pd[i][t],digits = 4);
+      qdNew[i,t+1] = round(dData.qd[i][t],digits = 4);
+   end
+end
+writedlm("./test/testDataP_96_Fixed.csv",pdNew,',');
+writedlm("./test/testDataQ_96_Fixed.csv",qdNew,',')
 
 solDet,vDet = detBuild(Δt, T, fData, bData, dData);
 println(vDet);
