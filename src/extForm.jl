@@ -88,7 +88,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     end
     for i in bData.IDList
         wDict[i,td - 1] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
-        uDict[i] = @variable(mp, lower_bound = 0);
+        uDict[i] = @variable(mp, lower_bound = 0, upper_bound = bData.uCap[i]);
         for t in td:T
             wDict[i,t] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
             yDict[i,t] = @variable(mp);

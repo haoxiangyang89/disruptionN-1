@@ -72,7 +72,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
     @variable(mp, lqp[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, lpm[i in fData.IDList, t in td:T] >= 0);
     @variable(mp, lqm[i in fData.IDList, t in td:T] >= 0);
-    @variable(mp, u[i in bData.IDList] >= 0);
+    @variable(mp, 0 <= u[i in bData.IDList] <= bData.uCap[i]);
     @variable(mp, θ[tp in (td + τ + 1):T, ω in Ω] >= 0);
 
     # set up the constraints
