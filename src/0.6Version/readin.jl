@@ -1,5 +1,4 @@
 # functions to read-in the data
-using DelimitedFiles;
 
 function readMP(fileAdd::String)
     # read in the file from a specific address
@@ -16,27 +15,27 @@ function readMP(fileAdd::String)
     close(f);
 
     # separate the raw strings for bus/gen/branch/cost
-    if typeof(match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
+    if typeof(match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
         busST = match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         busST = "";
     end
-    if typeof(match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
+    if typeof(match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
         genST = match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         genST = "";
     end
-    if typeof(match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
+    if typeof(match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
         brST = match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         brST = "";
     end
-    if typeof(match(r"mpc.gencost = \[([0-9\t\ \.\;\r\n\-e]*)\];",rawStr)) != Nothing
+    if typeof(match(r"mpc.gencost = \[([0-9\t\ \.\;\r\n\-e]*)\];",rawStr)) != Void
         cST = match(r"mpc.gencost = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         cST = "";
     end
-    if typeof(match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
+    if typeof(match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
         uST = match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         uST = ""
@@ -193,10 +192,10 @@ function parsebrST(brST,baseMVA)
                 τ = 1.0;
             end
             σ1 = parse(Float64,brdata[10]);
-            g[(fID,tID,1)] = round(r/(r^2 + x^2); digits = 6);
-            g[(tID,fID,1)] = round(r/(r^2 + x^2); digits = 6);
-            b[(fID,tID,1)] = round(-x/(r^2 + x^2); digits = 6);
-            b[(tID,fID,1)] = round(-x/(r^2 + x^2); digits = 6);
+            g[(fID,tID,1)] = round(r/(r^2 + x^2),6);
+            g[(tID,fID,1)] = round(r/(r^2 + x^2),6);
+            b[(fID,tID,1)] = round(-x/(r^2 + x^2),6);
+            b[(tID,fID,1)] = round(-x/(r^2 + x^2),6);
             bc[(fID,tID,1)] = bc1;
             bc[(tID,fID,1)] = bc1;
             τ1[(fID,tID,1)] = τ;
@@ -231,10 +230,10 @@ function parsebrST(brST,baseMVA)
                 τ = 1.0;
             end
             σ1 = parse(Float64,brdata[10]);
-            g[(fID,tID,m[(fID,tID)])] = round(r/(r^2 + x^2); digits = 6);
-            g[(tID,fID,m[(tID,fID)])] = round(r/(r^2 + x^2); digits = 6);
-            b[(fID,tID,m[(fID,tID)])] = round(-x/(r^2 + x^2); digits = 6);
-            b[(tID,fID,m[(tID,fID)])] = round(-x/(r^2 + x^2); digits = 6);
+            g[(fID,tID,m[(fID,tID)])] = round(r/(r^2 + x^2),6);
+            g[(tID,fID,m[(tID,fID)])] = round(r/(r^2 + x^2),6);
+            b[(fID,tID,m[(fID,tID)])] = round(-x/(r^2 + x^2),6);
+            b[(tID,fID,m[(tID,fID)])] = round(-x/(r^2 + x^2),6);
             bc[(fID,tID,m[(fID,tID)])] = bc1;
             bc[(tID,fID,m[(tID,fID)])] = bc1;
             τ1[(fID,tID,m[(fID,tID)])] = τ;
@@ -594,7 +593,7 @@ function readDisruption(fileName,fileType)
         # detect the dimension of T
         dataT = dataRaw[1:2,:];
         emptyInd = findfirst(x -> x=="", dataT[1,:]);
-        if !(isnothing(emptyInd))
+        if emptyInd != 0
             # if it is not full length
             dataT = dataT[:,1:(emptyInd - 1)];
         end
@@ -607,7 +606,7 @@ function readDisruption(fileName,fileType)
         # detect the dimension of Ω
         dataOme = dataRaw[3:4,:];
         emptyInd = findfirst(x -> x=="", dataOme[1,:]);
-        if !(isnothing(emptyInd))
+        if emptyInd != 0
             # if it is not full length
             dataOme = dataOme[:,1:(emptyInd - 1)];
         end
