@@ -1,5 +1,3 @@
-using JuMP, Gurobi, Ipopt;
-
 # forward pass of the SDDP algorithm
 function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
     # precalculate data
@@ -13,7 +11,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
 
     # construct the first stage without disruption occurring
     #mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
-    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27", constr_viol_tol = 1e-10));
+    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
 
     # set up the variables
     @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
@@ -174,7 +172,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     end
 
     #mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
-    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27", constr_viol_tol = 1e-10));
+    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
