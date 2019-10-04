@@ -1,12 +1,11 @@
 # main program structure construction
 
-function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, printLog = false, iterMin = 100, iterMax = 1000)
+function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, printLog = false, iterMin = 100, iterMax = 1000, cutDict = Dict())
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
     LB = -9999999999;
     iterNo = 0;
-    cutDict = Dict();
     keepIter = true;
     LBHist = [];
     UBHist = [];
