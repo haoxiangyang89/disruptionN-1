@@ -1,6 +1,6 @@
 # load functions and packages
 
-using JuMP, Ipopt, Gurobi, Combinatorics, JLD, HDF5, DelimitedFiles;
+using JuMP, Ipopt, Gurobi, Combinatorics, DelimitedFiles;
 
 include("def.jl");
 include("readin.jl");

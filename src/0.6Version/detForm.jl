@@ -62,17 +62,32 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in 1:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    #@constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t], zq[i,t]]) <= u[i]);
-    @constraint(mp, bThermal1[i in bData.IDList, t in 1:T], zp[i,t] <= u[i]);
-    @constraint(mp, bThermal2[i in bData.IDList, t in 1:T], zq[i,t] <= u[i]);
+    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t], zq[i,t]]) <= u[i]);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in 1:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
     @constraint(mp, bInvmax[i in bData.IDList, t in 1:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
 
-    # deterministic objective function
-    objExpr = calObjDet(mp, T, fData, bData, sp, lpp, lqp, lpm, lqm, u);
+    # set up the objective function
+    @variable(mp,fs[i in fData.genIDList, t in 1:T] >= 0);
+    @variable(mp,tAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3] >= 0);
+    @variable(mp,tAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
+    @variable(mp,tAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
 
-    @objective(mp, Min, objExpr);
+    @constraint(mp,gcAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
+        (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
+        (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
+        fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+    @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
+        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+    @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
+        fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+
+    # deterministic objective function
+    @objective(mp, Min, sum(bData.cost[i]*u[i] for i in bData.IDList) +
+        sum(fData.cz*sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList) +
+        sum(fs[i,t] for i in fData.genIDList) for t in 1:T));
 
     if solveOpt
         # solve the problem
@@ -89,14 +104,33 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         solLq = Dict();
         for i in fData.genIDList
             for t in 1:T
-                solSp[i,t] = getvalue(sp[i,t]);
-                solSq[i,t] = getvalue(sq[i,t]);
+                if getvalue(sp[i,t]) > 1e-5
+                    solSp[i,t] = getvalue(sp[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
+                if getvalue(sq[i,t]) > 1e-5
+                    solSq[i,t] = getvalue(sq[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
             end
         end
         for i in bData.IDList
-            solu[i] = getvalue(u[i]);
-            for t in 1:T
-                solw[i,t] = getvalue(w[i,t]);
+            if getvalue(u[i]) > 1e-5
+                solu[i] = getvalue(u[i]);
+                for t in 1:T
+                    if getvalue(w[i,t]) > 1e-5
+                        solw[i,t] = getvalue(w[i,t]);
+                    else
+                        solw[i,t] = 0;
+                    end
+                end
+            else
+                solu[i] = 0;
+                for t in 1:T
+                    solw[i,t] = 0;
+                end
             end
         end
         for i in fData.IDList
@@ -218,17 +252,26 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
     @constraint(mp, uIni[i in bData.IDList], u[i] == currentSol.u[i]);
 
     # set up the objective function
-    objExpr = @expression(mp, fData.cz*sum(sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList) for t in td:T));
-    for t in td:T
-        for i in fData.genIDList
-            # add generator cost
-            if fData.cp[i].n == 3
-                objExpr += fData.cp[i].params[1]*(sp[i,t]^2) + fData.cp[i].params[2]*sp[i,t];
-            elseif fData.cp[i].n == 2
-                objExpr += fData.cp[i].params[1]*sp[i,t];
-            end
-        end
-    end
+    # set up the objective function
+    @variable(mp,fs[i in fData.genIDList, t in td:T]);
+    @variable(mp,tAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+    @variable(mp,tAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+    @variable(mp,tAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+
+    @constraint(mp,gcAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
+        (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
+        (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
+        fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+    @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
+        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+    @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
+        fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+
+    objExpr = @expression(mp, sum(fData.cz*sum(lpp[i,t] + lqp[i,t] + lpm[i,t] + lqm[i,t] for i in fData.IDList) +
+        sum(fs[i,t] for i in fData.genIDList) for t in td:T));
+
     @objective(mp, Min, objExpr);
 
     if solveOpt
@@ -248,14 +291,33 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         solLq = Dict();
         for i in fData.genIDList
             for t in td:T
-                solSp[i,t] = getvalue(sp[i,t]);
-                solSq[i,t] = getvalue(sq[i,t]);
+                if getvalue(sp[i,t]) > 1e-5
+                    solSp[i,t] = getvalue(sp[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
+                if getvalue(sq[i,t]) > 1e-5
+                    solSq[i,t] = getvalue(sq[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
             end
         end
         for i in bData.IDList
-            solu[i] = getvalue(u[i]);
-            for t in td:T
-                solw[i,t] = getvalue(w[i,t]);
+            if getvalue(u[i]) > 1e-5
+                solu[i] = getvalue(u[i]);
+                for t in td:T
+                    if getvalue(w[i,t]) > 1e-5
+                        solw[i,t] = getvalue(w[i,t]);
+                    else
+                        solw[i,t] = 0;
+                    end
+                end
+            else
+                solu[i] = 0;
+                for t in td:T
+                    solw[i,t] = 0;
+                end
             end
         end
         for i in fData.IDList

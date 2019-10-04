@@ -5,7 +5,7 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 pmap(i -> importIpopt(),1:30);
 
-fileAdd = "./test/case13_ieee.m";
+fileAdd = "./test/case13_ieee_linCost.m";
 fData = readStatic(fileAdd,10000);
 disAdd = "./test/testProbRead_96.csv"
 pDistr = readDisruption(disAdd,"csv");

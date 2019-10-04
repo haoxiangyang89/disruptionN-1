@@ -10,8 +10,8 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
 
     # construct the first stage without disruption occurring
-    #mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
-    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    # mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
 
     # set up the variables
     @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
@@ -60,16 +60,13 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
+    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
     @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in 1:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
-    @constraint(mp, bThermal1[i in bData.IDList, t in 1:T], zp[i,t] <= u[i]);
-    @constraint(mp, bThermal2[i in bData.IDList, t in 1:T], zq[i,t] <= u[i]);
+    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in 1:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
-    @constraint(mp, bInvmax[i in bData.IDList, t in 1:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
 
     # set up the cuts, here tp is the disruption time
@@ -78,16 +75,36 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
             if (tp,ω) in keys(cutDict)
                 for l in 1:length(cutDict[tp,ω])
                     @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i]*(sp[i] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i]*(w[i] - cutDict[tp,ω][l].what[i]) +
-                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
+                        sum(cutDict[tp,ω][l].λ[i]*sp[i,tp - 1] for i in fData.genIDList) +
+                        sum(cutDict[tp,ω][l].γ[i]*w[i,tp - 1] + cutDict[tp,ω][l].μ[i]*u[i] for i in bData.IDList));
                 end
             end
         end
     end
 
     # set up the objective function
-    objExpr = calObj1(mp, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u);
+    @variable(mp,fs[i in fData.genIDList, t in 1:T]);
+    @variable(mp,tAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3] >= 0);
+    @variable(mp,tAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
+    @variable(mp,tAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
+
+    @constraint(mp,gcAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
+        (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
+        (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
+        fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+    @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
+        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+    @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
+        fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+
+    fDict,lDict,θDict = calDualC1(T, fData, pDistr);
+    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
+        sum(sum(fDict[i,t]*fs[i,t] for i in fData.genIDList) +
+        sum(lDict[i,t]*(lpp[i,t] + lpm[i,t] + lqp[i,t] + lqm[i,t]) for i in fData.IDList) for t in 1:T) +
+        sum(sum(θDict[t,ω]*θ[t,ω] for ω in Ω) for t in 2:T));
+
     @objective(mp, Min, objExpr);
 
     if solveOpt
@@ -107,14 +124,33 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         solLq = Dict();
         for i in fData.genIDList
             for t in 1:T
-                solSp[i,t] = getvalue(sp[i,t]);
-                solSq[i,t] = getvalue(sq[i,t]);
+                if getvalue(sp[i,t]) > 1e-5
+                    solSp[i,t] = getvalue(sp[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
+                if getvalue(sq[i,t]) > 1e-5
+                    solSq[i,t] = getvalue(sq[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
             end
         end
         for i in bData.IDList
-            solu[i] = getvalue(u[i]);
-            for t in 1:T
-                solw[i,t] = getvalue(w[i,t]);
+            if getvalue(u[i]) > 1e-5
+                solu[i] = getvalue(u[i]);
+                for t in 1:T
+                    if getvalue(w[i,t]) > 1e-5
+                        solw[i,t] = getvalue(w[i,t]);
+                    else
+                        solw[i,t] = 0;
+                    end
+                end
+            else
+                solu[i] = 0;
+                for t in 1:T
+                    solw[i,t] = 0;
+                end
             end
         end
         for i in fData.IDList
@@ -171,8 +207,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         Bparams[i,td - 1] = 1;
     end
 
-    #mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
-    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    # mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
@@ -221,18 +257,19 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
+    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
     @constraint(mp, powerflow1[k in fData.brList, t in td:T;Bparams[k,t] == 1], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
-    @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
-    @constraint(mp, bThermal2[i in bData.IDList, t in td:T], zq[i,t] <= u[i]);
+    @constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+    # @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
+    # @constraint(mp, bThermal3[i in bData.IDList, t in td:T], -zp[i,t] <= u[i]);
+    # #@constraint(mp, bThermal2[i in bData.IDList, t in 1:T], zq[i,t] <= u[i]);
+    # @constraint(mp, bThermal2[i in bData.IDList, t in td:T], zq[i,t] == 0);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
-    @constraint(mp, bInvmax[i in bData.IDList, t in td:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,td - 1] == currentSol.w[i,td - 1]);
     @constraint(mp, spIni[i in fData.genIDList], sp[i,td - 1] == currentSol.sp[i,td - 1]);
     @constraint(mp, uIni[i in bData.IDList], u[i] == currentSol.u[i]);
@@ -243,16 +280,35 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
             if (tp,ω) in keys(cutDict)
                 for l in 1:length(cutDict[tp,ω])
                     @constraint(mp, θ[tp,ω] >= cutDict[tp,ω][l].vhat +
-                        sum(cutDict[tp,ω][l].λ[i]*(sp[i] - cutDict[tp,ω][l].sphat[i]) for i in fData.genIDList) +
-                        sum(cutDict[tp,ω][l].γ[i]*(w[i] - cutDict[tp,ω][l].what[i]) +
-                            cutDict[tp,ω][l].μ[i]*(u[i] - cutDict[tp,ω][l].uhat[i]) for i in bData.IDList));
+                        sum(cutDict[tp,ω][l].λ[i]*sp[i,tp - 1] for i in fData.genIDList) +
+                        sum(cutDict[tp,ω][l].γ[i]*w[i,tp - 1] + cutDict[tp,ω][l].μ[i]*u[i] for i in bData.IDList));
                 end
             end
         end
     end
 
     # set up the objective function
-    objExpr = calObj(mp, td, τ, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ);
+    @variable(mp,fs[i in fData.genIDList, t in td:T]);
+    @variable(mp,tAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3] >= 0);
+    @variable(mp,tAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+    @variable(mp,tAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+
+    @constraint(mp,gcAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
+        (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
+        (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+    @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
+        fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+    @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
+        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+    @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
+        fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+
+    fDict,lDict,θDict = calDualC(td, τ, T, fData, pDistr);
+    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
+        sum(sum(fDict[i,t]*fs[i,t] for i in fData.genIDList) +
+        sum(lDict[i,t]*(lpp[i,t] + lpm[i,t] + lqp[i,t] + lqm[i,t]) for i in fData.IDList) for t in td:T) +
+        sum(sum(θDict[t,ω]*θ[t,ω] for ω in Ω) for t in (td + τ + 1):T));
     @objective(mp, Min, objExpr);
 
     if solveOpt
@@ -272,14 +328,33 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         solLq = Dict();
         for i in fData.genIDList
             for t in td:T
-                solSp[i,t] = getvalue(sp[i,t]);
-                solSq[i,t] = getvalue(sq[i,t]);
+                if getvalue(sp[i,t]) > 1e-5
+                    solSp[i,t] = getvalue(sp[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
+                if getvalue(sq[i,t]) > 1e-5
+                    solSq[i,t] = getvalue(sq[i,t]);
+                else
+                    solSp[i,t] = 0;
+                end
             end
         end
         for i in bData.IDList
-            solu[i] = getvalue(u[i]);
-            for t in td:T
-                solw[i,t] = getvalue(w[i,t]);
+            if getvalue(u[i]) > 1e-5
+                solu[i] = getvalue(u[i]);
+                for t in td:T
+                    if getvalue(w[i,t]) > 1e-5
+                        solw[i,t] = getvalue(w[i,t]);
+                    else
+                        solw[i,t] = 0;
+                    end
+                end
+            else
+                solu[i] = 0;
+                for t in td:T
+                    solw[i,t] = 0;
+                end
             end
         end
         for i in fData.IDList

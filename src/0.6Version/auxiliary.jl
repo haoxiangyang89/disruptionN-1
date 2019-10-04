@@ -153,6 +153,56 @@ function calObj1(mp, T, fData, bData, pDistr, sp, lpp, lqp, lpm, lqm, θ, u)
     return objExpr;
 end
 
+function calDualC1(T, fData, pDistr)
+    # function to formulate the objective function for f_D
+    Ω = [ω for ω in keys(pDistr.ωDistrn)];
+
+    fDict = Dict();
+    lDict = Dict();
+    θDict = Dict();
+    for tp in 1:maximum(keys(pDistr.tDistrn))
+        if tp < T
+            for t in 1:tp
+                for i in fData.genIDList
+                    if !((i,t) in keys(fDict))
+                        fDict[i,t] = pDistr.tDistrn[tp];
+                    else
+                        fDict[i,t] += pDistr.tDistrn[tp];
+                    end
+                end
+                for i in fData.IDList
+                    if !((i,t) in keys(lDict))
+                        lDict[i,t] = pDistr.tDistrn[tp]*fData.cz;
+                    else
+                        lDict[i,t] += pDistr.tDistrn[tp]*fData.cz;
+                    end
+                end
+            end
+            for ω in Ω
+                θDict[tp + 1,ω] = pDistr.tDistrn[tp]*pDistr.ωDistrn[ω];
+            end
+        else
+            for t in 1:T
+                for i in fData.genIDList
+                    if !((i,t) in keys(fDict))
+                        fDict[i,t] = pDistr.tDistrn[tp];
+                    else
+                        fDict[i,t] += pDistr.tDistrn[tp];
+                    end
+                end
+                for i in fData.IDList
+                    if !((i,t) in keys(lDict))
+                        lDict[i,t] = pDistr.tDistrn[tp]*fData.cz;
+                    else
+                        lDict[i,t] += pDistr.tDistrn[tp]*fData.cz;
+                    end
+                end
+            end
+        end
+    end
+    return fDict,lDict,θDict;
+end
+
 function calCostF(costn, currentSol, T, fData, nowT, disT)
     # function to calculate costs for forward pass
     costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1));
@@ -167,4 +217,54 @@ function calCostF(costn, currentSol, T, fData, nowT, disT)
         end
     end
     return costn;
+end
+
+function calDualC(td, τ, T, fData, pDistr)
+    # function to formulate the objective function for f_D
+    Ω = [ω for ω in keys(pDistr.ωDistrn)];
+
+    fDict = Dict();
+    lDict = Dict();
+    θDict = Dict();
+    for tp in 1:maximum(keys(pDistr.tDistrn))
+        if tp <= T - (td + τ)
+            for t in td:(tp + td + τ - 1)
+                for i in fData.genIDList
+                    if !((i,t) in keys(fDict))
+                        fDict[i,t] = pDistr.tDistrn[tp];
+                    else
+                        fDict[i,t] += pDistr.tDistrn[tp];
+                    end
+                end
+                for i in fData.IDList
+                    if !((i,t) in keys(lDict))
+                        lDict[i,t] = pDistr.tDistrn[tp]*fData.cz;
+                    else
+                        lDict[i,t] += pDistr.tDistrn[tp]*fData.cz;
+                    end
+                end
+            end
+            for ω in Ω
+                θDict[tp + td + τ,ω] = pDistr.tDistrn[tp]*pDistr.ωDistrn[ω];
+            end
+        else
+            for t in td:T
+                for i in fData.genIDList
+                    if !((i,t) in keys(fDict))
+                        fDict[i,t] = pDistr.tDistrn[tp];
+                    else
+                        fDict[i,t] += pDistr.tDistrn[tp];
+                    end
+                end
+                for i in fData.IDList
+                    if !((i,t) in keys(lDict))
+                        lDict[i,t] = pDistr.tDistrn[tp]*fData.cz;
+                    else
+                        lDict[i,t] += pDistr.tDistrn[tp]*fData.cz;
+                    end
+                end
+            end
+        end
+    end
+    return fDict,lDict,θDict;
 end

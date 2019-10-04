@@ -41,7 +41,7 @@ struct fixedData
 
     cp :: Dict{Any,Any}
     cq :: Dict{Any,Any}
-    cz :: Float64
+    cz :: Any
 
     busInd :: Dict{Any,Any}
     branchDict1 :: Dict{Any,Any}
@@ -104,7 +104,4 @@ struct cutData
     γ :: Dict{Any,Any}
     μ :: Dict{Any,Any}
     vhat :: Float64
-    sphat :: Dict{Any,Any}
-    what :: Dict{Any,Any}
-    uhat :: Dict{Any,Any}
 end
