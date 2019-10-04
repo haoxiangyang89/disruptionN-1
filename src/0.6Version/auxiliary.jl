@@ -268,3 +268,20 @@ function calDualC(td, τ, T, fData, pDistr)
     end
     return fDict,lDict,θDict;
 end
+
+function simuPath(τ,T,pDistr)
+    pathList = [];
+    nowT = 1;
+    while nowT <= T
+        tp,ωd = genScenario(pDistr);
+        push!(pathList, (tp,ωd));
+        if nowT == 1
+            nowT += tp;
+            nowT = min(nowT, T + 1);
+        else
+            nowT += tp + τ;
+            nowT = min(nowT, T + 1);
+        end
+    end
+    return pathList;
+end

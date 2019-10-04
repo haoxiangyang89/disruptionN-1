@@ -2,14 +2,19 @@
 include("run.jl");
 
 NN = 1000;
-solDet,costDet = exeDet(τ, T, Δt, fData, bData, dData, pDistr, NN);
+pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NN);
+pathDict = Dict();
+for i in 1:length(pathListData)
+    pathDict[i] = pathListData[i];
+end
+solDet,costDet = exeDet(τ, T, Δt, fData, bData, dData, pDistr, NN, pathDict);
 listDet = [costDet[i] for i in 1:NN];
 meanDet = mean(listDet);
 sigmaDet = std(listDet);
 println(round(meanDet,digits = 2)," ",round(meanDet - 1.96*sigmaDet,digits = 2)," ",round(meanDet + 1.96*sigmaDet,digits = 2));
 
 cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, 20, 100);
-solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, fData, bData, dData, pDistr, NN, cutDict);
+solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, fData, bData, dData, pDistr, NN, cutDict, pathDict);
 listSDDP = [costSDDP[i] for i in 1:NN];
 meanSDDP = mean(listSDDP);
 sigmaSDDP = std(listSDDP);
