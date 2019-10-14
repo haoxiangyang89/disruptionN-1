@@ -1,5 +1,6 @@
 # auxiliary functions
 
+using Distributions;
 import Base.rand;
 
 struct CategoricalSamplerNew <: Sampleable{Univariate,Discrete}
