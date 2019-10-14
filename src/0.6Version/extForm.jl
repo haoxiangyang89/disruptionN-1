@@ -36,8 +36,8 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     sqDict = Dict();
     for i in fData.genIDList
         for t in (td - 1):T
-            spDict[i,t] = @variable(mp, lower_bound = fData.Pmin[i],  upper_bound = fData.Pmax[i]);
-            sqDict[i,t] = @variable(mp, lower_bound = fData.Qmin[i],  upper_bound = fData.Qmax[i]);
+            spDict[i,t] = @variable(mp, lowerbound = fData.Pmin[i],  upperbound = fData.Pmax[i]);
+            sqDict[i,t] = @variable(mp, lowerbound = fData.Qmin[i],  upperbound = fData.Qmax[i]);
         end
     end
     sphatsum = Dict();
@@ -70,8 +70,10 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     yDict = Dict();
     zpDict = Dict();
     zqDict = Dict();
-    lpDict = Dict();
-    lqDict = Dict();
+    lppDict = Dict();
+    lqpDict = Dict();
+    lpmDict = Dict();
+    lqmDict = Dict();
     uDict = Dict();
     for k in fData.brList
         for t in td:T
@@ -81,16 +83,18 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     end
     for i in fData.IDList
         for t in td:T
-            vDict[i,t] = @variable(mp, lower_bound = fData.Vmin[i]^2, upper_bound = fData.Vmax[i]^2);
-            lpDict[i,t] = @variable(mp, lower_bound = 0);
-            lqDict[i,t] = @variable(mp, lower_bound = 0);
+            vDict[i,t] = @variable(mp, lowerbound = fData.Vmin[i]^2, upperbound = fData.Vmax[i]^2);
+            lppDict[i,t] = @variable(mp, lowerbound = 0);
+            lqpDict[i,t] = @variable(mp, lowerbound = 0);
+            lpmDict[i,t] = @variable(mp, lowerbound = 0);
+            lqmDict[i,t] = @variable(mp, lowerbound = 0);
         end
     end
     for i in bData.IDList
-        wDict[i,td - 1] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
-        uDict[i] = @variable(mp, lower_bound = 0, upper_bound = bData.uCap[i]);
+        wDict[i,td - 1] = @variable(mp, lowerbound = 0, upperbound = bData.cap[i]);
+        uDict[i] = @variable(mp, lowerbound = 0, upperbound = bData.uCap[i]);
         for t in td:T
-            wDict[i,t] = @variable(mp, lower_bound = 0, upper_bound = bData.cap[i]);
+            wDict[i,t] = @variable(mp, lowerbound = 0, upperbound = bData.cap[i]);
             yDict[i,t] = @variable(mp);
             zpDict[i,t] = @variable(mp);
             zqDict[i,t] = @variable(mp);
@@ -100,9 +104,9 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
     # set up the constraints
     for i in fData.IDList
         for t in td:T
-            @constraint(mp, sum(zpDict[b,t] for b in bData.IDList if bData.Loc[b] == i) + lpDict[i,t] +
+            @constraint(mp, sum(zpDict[b,t] for b in bData.IDList if bData.Loc[b] == i) + lppDict[i,t] - lpmDict[i,t] +
                 sphatsum[i,t] - dData.pd[i][t] == sum(pDict[k,t] for k in fData.branchDict1[i]));
-            @constraint(mp, sum(zqDict[b,t] for b in bData.IDList if bData.Loc[b] == i) + lqDict[i,t] +
+            @constraint(mp, sum(zqDict[b,t] for b in bData.IDList if bData.Loc[b] == i) + lqpDict[i,t] - lqmDict[i,t] +
                 sqhatsum[i,t] - dData.qd[i][t] == sum(qDict[k,t] for k in fData.branchDict1[i]));
         end
     end
@@ -147,13 +151,13 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
 
     # recursion through the possible scenario
     tList = sort([t for t in keys(pDistr.tDistrn)]);
-    objExpr = objective_function(mp);
+    objExpr = getobjective(mp);
     for tp in tList
         if td == 1
             objExpr += sum(bData.cost[i]*uDict[i] for i in bData.IDList);
             if td + tp > T
                 # if the next disruption is over the time horizon
-                dExpr = fData.cz*sum(sum(lpDict[i,t] + lqDict[i,t] for i in fData.IDList) for t in td:T);
+                dExpr = fData.cz*sum(sum(lppDict[i,t] + lqpDict[i,t] + lpmDict[i,t] + lqmDict[i,t] for i in fData.IDList) for t in td:T);
                 for t in td:T
                     for i in fData.genIDList
                         # add generator cost
@@ -165,9 +169,10 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                     end
                 end
                 objExpr += baseProb*pDistr.tDistrn[tp]*dExpr;
+                @objective(mp, Min, objExpr);
             else
                 # if not
-                dExpr = fData.cz*sum(sum(lpDict[i,t] + lqDict[i,t] for i in fData.IDList) for t in td:(td + tp - 1));
+                dExpr = fData.cz*sum(sum(lppDict[i,t] + lqpDict[i,t] + lpmDict[i,t] + lqmDict[i,t] for i in fData.IDList) for t in td:T);
                 for t in td:(td + tp - 1)
                     for i in fData.genIDList
                         # add generator cost
@@ -191,6 +196,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                         uInherit[i] = uDict[i];
                     end
                     inheritData = [spInherit,wInherit,uInherit];
+                    @objective(mp, Min, objExpr);
                     mp = extForm(mp, td + tp, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
                 end
             end
@@ -198,7 +204,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
             if td + τ + tp > T
                 # if the next disruption is over the time horizon
                 # add to the objective function
-                dExpr = fData.cz*sum(sum(lpDict[i,t] + lqDict[i,t] for i in fData.IDList) for t in td:T);
+                dExpr = fData.cz*sum(sum(lppDict[i,t] + lqpDict[i,t] + lpmDict[i,t] + lqmDict[i,t] for i in fData.IDList) for t in td:T);
                 for t in td:T
                     for i in fData.genIDList
                         # add generator cost
@@ -210,11 +216,12 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                     end
                 end
                 objExpr += baseProb*pDistr.tDistrn[tp]*dExpr;
+                @objective(mp, Min, objExpr);
             else
                 # if not
                 # add the current part to the objective function
                 # recursion to the next disruption
-                dExpr = fData.cz*sum(sum(lpDict[i,t] + lqDict[i,t] for i in fData.IDList) for t in td:(td + tp + τ - 1));
+                dExpr = fData.cz*sum(sum(lppDict[i,t] + lqpDict[i,t] + lpmDict[i,t] + lqmDict[i,t] for i in fData.IDList) for t in td:T);
                 for t in td:(td + tp + τ - 1)
                     for i in fData.genIDList
                         # add generator cost
@@ -238,6 +245,7 @@ function extForm(mp, td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, d
                         uInherit[i] = uDict[i];
                     end
                     inheritData = [spInherit,wInherit,uInherit];
+                    @objective(mp, Min, objExpr);
                     mp = extForm(mp, td + tp + τ, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
                 end
             end

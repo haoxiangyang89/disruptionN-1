@@ -1,6 +1,5 @@
 # auxiliary functions
 
-using Distributions;
 import Base.rand;
 
 struct CategoricalSamplerNew <: Sampleable{Univariate,Discrete}
@@ -28,15 +27,13 @@ function genScenario(pDistr)
 end
 
 function modifyOmega(pDistr,hardComp)
-    ωDistrNew = copy(pDistr.ωDistrn);
-    releaseProb = ωDistrNew[hardComp];
+    ωDistrNew = Dict();
+    releaseProb = pDistr.ωDistrn[hardComp];
     avgNo = length(values(pDistr.ωDistrn)) - 1;
-    for i in keys(ωDistrNew)
-        if i == hardComp
-            # if it is the hardened component
-            ωDistrNew[i] = 0;
-        else
-            ωDistrNew[i] += releaseProb/avgNo;
+    for i in keys(pDistr.ωDistrn)
+        if i != hardComp
+            # if it is not the hardened component
+            ωDistrNew[i] = pDistr.ωDistrn[i] + releaseProb/avgNo;
         end
     end
     pDistrNew = probDistrn(pDistr.tDistrn,ωDistrNew);
