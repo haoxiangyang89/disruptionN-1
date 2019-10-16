@@ -19,3 +19,9 @@ T = 16;
 Δt = 0.25;
 N = 30;
 pDistr = modifyT(pDistr,1/4,T);
+
+τ = 4;
+T = 24;
+Δt = 0.25;
+N = 30;
+pDistr = modifyT(pDistr,4/T,T);

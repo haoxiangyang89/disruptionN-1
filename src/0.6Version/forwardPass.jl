@@ -124,23 +124,23 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         solLq = Dict();
         for i in fData.genIDList
             for t in 1:T
-                if getvalue(sp[i,t]) > 1e-5
+                if abs(getvalue(sp[i,t])) > 1e-5
                     solSp[i,t] = getvalue(sp[i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if getvalue(sq[i,t]) > 1e-5
+                if abs(getvalue(sq[i,t])) > 1e-5
                     solSq[i,t] = getvalue(sq[i,t]);
                 else
-                    solSp[i,t] = 0;
+                    solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if getvalue(u[i]) > 1e-5
+            if abs(getvalue(u[i])) > 1e-5
                 solu[i] = getvalue(u[i]);
                 for t in 1:T
-                    if getvalue(w[i,t]) > 1e-5
+                    if abs(getvalue(w[i,t])) > 1e-5
                         solw[i,t] = getvalue(w[i,t]);
                     else
                         solw[i,t] = 0;
@@ -155,12 +155,12 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
         end
         for i in fData.IDList
             for t in 1:T
-                if (getvalue(lpp[i,t]) > 1e-8)|(getvalue(lpm[i,t]) > 1e-8)
+                if (abs(getvalue(lpp[i,t])) > 1e-8)|(abs(getvalue(lpm[i,t])) > 1e-8)
                     solLp[i,t] = getvalue(lpp[i,t]) - getvalue(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (getvalue(lqp[i,t]) > 1e-8)|(getvalue(lqm[i,t]) > 1e-8)
+                if (abs(getvalue(lqp[i,t])) > 1e-8)|(abs(getvalue(lqm[i,t])) > 1e-8)
                     solLq[i,t] = getvalue(lqp[i,t]) - getvalue(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
@@ -328,23 +328,23 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         solLq = Dict();
         for i in fData.genIDList
             for t in td:T
-                if getvalue(sp[i,t]) > 1e-5
+                if abs(getvalue(sp[i,t])) > 1e-5
                     solSp[i,t] = getvalue(sp[i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if getvalue(sq[i,t]) > 1e-5
+                if abs(getvalue(sq[i,t])) > 1e-5
                     solSq[i,t] = getvalue(sq[i,t]);
                 else
-                    solSp[i,t] = 0;
+                    solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if getvalue(u[i]) > 1e-5
+            if abs(getvalue(u[i])) > 1e-5
                 solu[i] = getvalue(u[i]);
                 for t in td:T
-                    if getvalue(w[i,t]) > 1e-5
+                    if abs(getvalue(w[i,t])) > 1e-5
                         solw[i,t] = getvalue(w[i,t]);
                     else
                         solw[i,t] = 0;
@@ -359,12 +359,12 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         end
         for i in fData.IDList
             for t in td:T
-                if (getvalue(lpp[i,t]) > 1e-8)|(getvalue(lpm[i,t]) > 1e-8)
+                if (abs(getvalue(lpp[i,t])) > 1e-8)|(abs(getvalue(lpm[i,t])) > 1e-8)
                     solLp[i,t] = getvalue(lpp[i,t]) - getvalue(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (getvalue(lqp[i,t]) > 1e-8)|(getvalue(lqm[i,t]) > 1e-8)
+                if (abs(getvalue(lqp[i,t])) > 1e-8)|(abs(getvalue(lqm[i,t]))> 1e-8)
                     solLq[i,t] = getvalue(lqp[i,t]) - getvalue(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
