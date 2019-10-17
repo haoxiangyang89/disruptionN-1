@@ -18,7 +18,7 @@ solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, fData, bData, dData, pDistr, 
 listSDDP = [costSDDP[i] for i in 1:NN];
 meanSDDP = mean(listSDDP);
 sigmaSDDP = std(listSDDP);
-println(round(meanSDDP,2),round(meanSDDP - 1.96*sigmaSDDP,2),round(meanSDDP + 1.96*sigmaSDDP,2));
+println(round(meanSDDP,2)," ",round(meanSDDP - 1.96*sigmaSDDP,2)," ",round(meanSDDP + 1.96*sigmaSDDP,2));
 
 outputData = [solDet,costDet,meanDet,sigmaDet,
     cutDict,LBHist,UBHist,UBuHist,UBlHist,solSDDP,LBSDDP,costSDDP,meanSDDP,sigmaSDDP];

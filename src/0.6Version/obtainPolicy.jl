@@ -17,7 +17,7 @@ bAdd = "testDataB.csv";
 bData = readBattery(bAdd,"csv");
 
 pathDict = Dict();
-TList = [12,24,36,48,60,72,84,96];
+TList = [12,24,48,72,96];
 for T in TList
     τ = Int64(1/6*T);
     pDistr = modifyT(pDistr,4/T,T);
@@ -35,7 +35,9 @@ policyDict = Dict();
 for T in TList
     τ = Int64(1/6*T);
     pDistr = modifyT(pDistr,4/T,T);
+    tic();
     cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, 20, 20);
-    policyDict[T] = cutDict,LBHist,UBHist,UBuHist,UBlHist;
+    runTime = toc();
+    policyDict[T] = [cutDict,LBHist,UBHist,UBuHist,UBlHist,runTime];
     save("policy_$(T).jld","policyDict",policyDict);
 end
