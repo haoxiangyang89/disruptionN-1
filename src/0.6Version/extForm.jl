@@ -204,11 +204,11 @@
                     end
                     inheritData = [spInherit,wInherit,uInherit];
                     @objective(mExt, Min, objExpr);
-                    println("=========================",1," ",td," ",tp,"=========================");
-                    println(mExt.obj);
+                    # println("=========================",1," ",td," ",tp,"=========================");
+                    # println(mExt.obj);
                     global mExt = extForm(td + tp, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
-                    println("=========================",11," ",td," ",tp,"=========================");
-                    println(mExt.obj);
+                    # println("=========================",11," ",td," ",tp,"=========================");
+                    # println(mExt.obj);
                     objExpr = getobjective(mExt);
                 end
             end
@@ -258,11 +258,11 @@
                     end
                     inheritData = [spInherit,wInherit,uInherit];
                     @objective(mExt, Min, objExpr);
-                    println("=========================",2," ",td," ",tp,"=========================");
-                    println(mExt.obj);
+                    # println("=========================",2," ",td," ",tp,"=========================");
+                    # println(mExt.obj);
                     global mExt = extForm(td + tp + τ, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
-                    println("=========================",22," ",td," ",tp,"=========================");
-                    println(mExt.obj);
+                    # println("=========================",22," ",td," ",tp,"=========================");
+                    # println(mExt.obj);
                     objExpr = getobjective(mExt);
                 end
             end

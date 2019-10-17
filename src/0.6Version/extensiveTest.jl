@@ -28,12 +28,12 @@ end
 data = [];
 for T in [8,12,16]
     pDistr = modifyT(pDistr,1/2,T);
-    mp = Model(solver = IpoptSolver(linear_solver = "ma27"));
+    global mExt = Model(solver = IpoptSolver(linear_solver = "ma27"));
     startTE = time();
-    mp = extForm(mp, 1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr);
-    solve(mp);
+    global mExt = extForm(1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr);
+    solve(mExt);
     elapsedTE = time() - startTE;
-    mpObj = getobjectivevalue(mp);
+    mExtObj = getobjectivevalue(mExt);
 
     startT = time();
     cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
