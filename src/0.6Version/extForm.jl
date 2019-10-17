@@ -1,4 +1,4 @@
-@everywhere function extForm(td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, dData, pDistr)
+@everywhere function extForm(td, ωd, inheritData, baseProb, τ, Δt, T, fData, bData, dData, pDistr,coneBool = false)
     # extensive formulation could not have variable/constraint names
     # inheritData: [1]: sp, [2]: w, [3]: u (only contains the information for the linking time period)
 
@@ -75,6 +75,7 @@
     lpmDict = Dict();
     lqmDict = Dict();
     uDict = Dict();
+    fsDict = Dict();
     for k in fData.brList
         for t in td:T
             pDict[k,t] = @variable(mExt, basename="p_$(td)_$(k)_$(t)");
@@ -130,7 +131,11 @@
             @constraint(mExt, pDict[k,t] == -pDict[(k[2],k[1],k[3]),t]);
             @constraint(mExt, qDict[k,t] == -qDict[(k[2],k[1],k[3]),t]);
             if Bparams[k,t] == 1
-                @constraint(mExt, pDict[k,t]^2 + qDict[k,t]^2 <= fData.rateA[k]^2);
+                if coneBool
+                    @constraint(mExt, norm([pDict[k,t],qDict[k,t]]) <= fData.rateA[k]);
+                else
+                    @constraint(mExt, pDict[k,t]^2 + qDict[k,t]^2 <= fData.rateA[k]^2);
+                end
                 @constraint(mExt, vDict[k[2],t] == vDict[k[1],t] - 2*(Rdict[k]*pDict[k,t] + Xdict[k]*qDict[k,t]));
             else
                 @constraint(mExt, pDict[k,t] == 0);
@@ -145,7 +150,11 @@
         @constraint(mExt, wDict[i,td - 1] == inheritData[2][i]);
         for t in td:T
             @constraint(mExt, wDict[i,t] == wDict[i,t - 1] - yDict[i,t]*Δt);
-            @constraint(mExt, zpDict[i,t]^2 + zqDict[i,t]^2 <= uDict[i]^2);
+            if coneBool
+                @constraint(mExt, norm([zpDict[i,t],zqDict[i,t]]) <= uDict[i]);
+            else
+                @constraint(mExt, zpDict[i,t]^2 + zqDict[i,t]^2 <= uDict[i]^2);
+            end
             for l in 1:length(bData.ηα[i])
                 @constraint(mExt, zpDict[i,t] <= bData.ηα[i][l]*yDict[i,t] + bData.ηβ[i][l]);
             end
@@ -169,7 +178,13 @@
                     for i in fData.genIDList
                         # add generator cost
                         if fData.cp[i].n == 3
-                            dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            if coneBool
+                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
+                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                            else
+                                dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            end
                         elseif fData.cp[i].n == 2
                             dExpr += fData.cp[i].params[1]*spDict[i,t];
                         end
@@ -221,7 +236,13 @@
                     for i in fData.genIDList
                         # add generator cost
                         if fData.cp[i].n == 3
-                            dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            if coneBool
+                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
+                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                            else
+                                dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            end
                         elseif fData.cp[i].n == 2
                             dExpr += fData.cp[i].params[1]*spDict[i,t];
                         end
@@ -238,7 +259,13 @@
                     for i in fData.genIDList
                         # add generator cost
                         if fData.cp[i].n == 3
-                            dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            if coneBool
+                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
+                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                            else
+                                dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            end
                         elseif fData.cp[i].n == 2
                             dExpr += fData.cp[i].params[1]*spDict[i,t];
                         end

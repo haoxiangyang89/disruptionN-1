@@ -36,7 +36,7 @@ for T in [8,12,16]
     mExtObj = getobjectivevalue(mExt);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, true, 20, 20);
     elapsedT = time() - startT;
     push!(data,(T,elapsedT,cutDict,LBHist,UBHist,UBuHist,UBlHist));
 end
