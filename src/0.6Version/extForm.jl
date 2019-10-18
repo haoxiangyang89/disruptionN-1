@@ -199,7 +199,13 @@
                     for i in fData.genIDList
                         # add generator cost
                         if fData.cp[i].n == 3
-                            dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            if coneBool
+                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
+                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                            else
+                                dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
+                            end
                         elseif fData.cp[i].n == 2
                             dExpr += fData.cp[i].params[1]*spDict[i,t];
                         end
@@ -221,7 +227,7 @@
                     @objective(mExt, Min, objExpr);
                     # println("=========================",1," ",td," ",tp,"=========================");
                     # println(mExt.obj);
-                    global mExt = extForm(td + tp, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
+                    global mExt = extForm(td + tp, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr, coneBool);
                     # println("=========================",11," ",td," ",tp,"=========================");
                     # println(mExt.obj);
                     objExpr = getobjective(mExt);
@@ -287,7 +293,7 @@
                     @objective(mExt, Min, objExpr);
                     # println("=========================",2," ",td," ",tp,"=========================");
                     # println(mExt.obj);
-                    global mExt = extForm(td + tp + τ, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr);
+                    global mExt = extForm(td + tp + τ, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr, coneBool);
                     # println("=========================",22," ",td," ",tp,"=========================");
                     # println(mExt.obj);
                     objExpr = getobjective(mExt);

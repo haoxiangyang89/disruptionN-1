@@ -28,17 +28,18 @@ end
 data = [];
 for T in [8,12,16]
     pDistr = modifyT(pDistr,1/2,T);
-    global mExt = Model(solver = IpoptSolver(linear_solver = "ma27"));
+    # global mExt = Model(solver = IpoptSolver(linear_solver = "ma27"));
+    global mExt = Model(solver = GurobiSolver());
     startTE = time();
-    global mExt = extForm(1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr);
+    global mExt = extForm(1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr, true);
     solve(mExt);
     elapsedTE = time() - startTE;
     mExtObj = getobjectivevalue(mExt);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, true, 20, 20);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
     elapsedT = time() - startT;
-    push!(data,(T,elapsedT,cutDict,LBHist,UBHist,UBuHist,UBlHist));
+    push!(data,(T,elapsedTE,mExtObj,elapsedT,LBHist));
 end
 save("extensiveSDDP.jld","data",data);
 

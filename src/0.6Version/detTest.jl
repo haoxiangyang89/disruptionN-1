@@ -44,6 +44,11 @@ for T in TList
 
     save("detResults.jld","detOut",detOut,"stochOut",stochOut);
 end
+
+# for T in TList
+#     println(T," & ",round(detOut[T][3],2)," & ",round(stochOut[T][4],2)," & ",round((detOut[T][3] - stochOut[T][4])/detOut[T][3]*100,2)," & ");
+# end
+
 # pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NN);
 # pathDict = Dict();
 # for i in 1:length(pathListData)
