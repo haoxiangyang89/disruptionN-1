@@ -16,6 +16,7 @@ bData = readBattery(bAdd,"csv");
 T = 24;
 Δt = 0.25;
 N = 30;
+NN = 1000;
 pDistr = modifyT(pDistr,4/T,T);
 
 τList = [2,4,6,8,10];
@@ -32,6 +33,5 @@ for τ in τList
     meanSDDP = mean(listSDDP);
     sigmaSDDP = std(listSDDP);
     data[τ] = [LBHist,LBSDDP,listSDDP,meanSDDP,sigmaSDDP];
+    save("tauResults.jld","data",data);
 end
-
-save("tauResults.jld","data",data);
