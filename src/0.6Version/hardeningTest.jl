@@ -25,8 +25,8 @@ pDistr = modifyT(pDistr,4/T,T);
 
 data = Dict();
 for ω in ΩSet
-    pDistrNew = modifyOmega(pDistr,ω);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistrNew, bData, dData, N, false, 20, 20);
+    # pDistrNew = modifyOmega(pDistr,ω);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20, Dict(), 0, [ω]);
     data[ω] = [cutDict,LBHist,UBHist,UBuHist,UBlHist];
     save("hardOut.jld","data",data);
 end
