@@ -1,6 +1,6 @@
 # main program structure construction
 
-function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubM = 200)
+function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubM = 200, hardened = [])
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
@@ -16,7 +16,7 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, it
         iterNo += 1;
         # forward pass: obtain the trial paths
         if !(ubGen)
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, Dict(), hardened);
             push!(LBHist,currentLB);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
@@ -25,9 +25,9 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, it
             currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
             push!(UBlHist,currentUBl);
         else
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, Dict(), hardened);
             push!(LBHist,currentLB);
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, ubM, cutDict);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, ubM, cutDict, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
             currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
@@ -38,7 +38,7 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, it
         if (currentLB <= currentUBu)&(currentLB >= currentUBl)&(iterNo >= iterMin)
             keepIter = false;
         else
-            cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict);
+            cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
         end
         println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
     end

@@ -175,7 +175,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     end
 end
 
-function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true, hardened = [])
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -190,14 +190,22 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
             if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
-                Bparams[k,t] = 0;
+                if k in hardened
+                    Bparams[k,t] = 1;
+                else
+                    Bparams[k,t] = 0;
+                end
             else
                 Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
             if (i == ωd)&(t <= td + τ)
-                Bparams[i,t] = 0;
+                if i in hardened
+                    Bparams[i,t] = 1;
+                else
+                    Bparams[i,t] = 0;
+                end
             else
                 Bparams[i,t] = 1;
             end
@@ -379,19 +387,19 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     end
 end
 
-function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict)
+function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, hardenend = [])
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
         sol,objV = noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict);
     else
         # if it is f_{ht}^ω
-        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, true, hardenend);
     end
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = [])
+function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
     costn = 0;
@@ -402,7 +410,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = 
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict);
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, hardened);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
@@ -430,7 +438,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = 
     return [solHist,currentLB,costn];
 end
 
-function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDict = Dict())
+function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDict = Dict(), hardened = [])
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts
@@ -450,7 +458,7 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDic
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathDict[i]), 1:N);
+    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];

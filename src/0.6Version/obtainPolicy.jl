@@ -36,8 +36,8 @@ for T in TList
     τ = Int64(1/6*T);
     pDistr = modifyT(pDistr,4/T,T);
     tic();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, 20, 20);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
     runTime = toc();
     policyDict[T] = [cutDict,LBHist,UBHist,UBuHist,UBlHist,runTime];
-    save("policy_$(T).jld","policyDict",policyDict);
+    save("policy_trained.jld","policyDict",policyDict);
 end

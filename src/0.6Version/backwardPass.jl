@@ -1,5 +1,5 @@
 # backward pass of the SDDP algorithm
-function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true, hardened = [])
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
     # precalculate data
@@ -16,14 +16,22 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
             if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
-                Bparams[k,t] = 0;
+                if k in hardened
+                    Bparams[k,t] = 1;
+                else
+                    Bparams[k,t] = 0;
+                end
             else
                 Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
             if (i == ωd)&(t <= td + τ)
-                Bparams[i,t] = 0;
+                if i in hardened
+                    Bparams[i,t] = 1;
+                else
+                    Bparams[i,t] = 0;
+                end
             else
                 Bparams[i,t] = 1;
             end
@@ -174,7 +182,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
     end
 end
 
-function dfBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+function dfBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true, hardened = [])
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
     # precalculate data
@@ -191,14 +199,22 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
             if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
-                Bparams[k,t] = 0;
+                if k in hardened
+                    Bparams[k,t] = 1;
+                else
+                    Bparams[k,t] = 0;
+                end
             else
                 Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
             if (i == ωd)&(t <= td + τ)
-                Bparams[i,t] = 0;
+                if i in hardened
+                    Bparams[i,t] = 1;
+                else
+                    Bparams[i,t] = 0;
+                end
             else
                 Bparams[i,t] = 1;
             end
@@ -466,12 +482,12 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr
 
 end
 
-function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict)
+function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict, hardened = [])
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, fData, bData, dData, pDistr, cutDict), paraSet);
+    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, fData, bData, dData, pDistr, cutDict, true, hardened), paraSet);
     # cutCurrentData is a list
     for ω in Ω
         itemInd = 0;
@@ -501,7 +517,7 @@ function constructBackwardM(td, τ, T, Δt, fData, pDistr, bData, dData, trialPa
     return cutDict;
 end
 
-function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict)
+function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts
@@ -518,7 +534,7 @@ function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDic
             end
         end
         if trialPaths != []
-            cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict);
+            cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict, hardened);
         end
         println("Time $(t) Passed");
     end
