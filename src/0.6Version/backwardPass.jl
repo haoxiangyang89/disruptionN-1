@@ -183,6 +183,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr,
 end
 
 function dfBuild_D(td, ωd, currentPath, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true, hardened = [])
+    # trying to find the previous solution that can be used for this td
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
     # precalculate data
@@ -531,6 +532,44 @@ function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDic
         for n in keys(trialPaths)
             if t in tpDict[n]
                 push!(matchedTrial,n);
+            end
+        end
+        if trialPaths != []
+            cutDict = constructBackwardM(t, τ, T, Δt, fData, pDistr, bData, dData, trialPaths, matchedTrial, cutDict, hardened);
+        end
+        println("Time $(t) Passed");
+    end
+    return cutDict;
+end
+
+function exeBackwardAll(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened = [])
+    # execution of forward pass
+    # input: trialPaths: the collection of trial points
+    #        cutDict: previously generated cuts
+    # output: update the cutDict
+    tpDict = Dict();
+    for n in keys(trialPaths)
+        possibleTList = [t for t in 1:T];
+        for t in [trialPaths[n][i][2] for i in 2:length(trialPaths[n])]
+            for tp in 1:τ
+                deleteat!(possibleTList,findin(possibleTList,t+tp));
+            end
+        end
+        tpDict[n] = possibleTList;
+    end
+    for t in T:-1:2
+        possiblePath = [];
+        matchedTrial = [];
+        for n in keys(trialPaths)
+            if t in tpDict[n]
+                pathTemp = [trialPaths[n][i][2] for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] <= t];
+                if !(t in pathTemp)
+                    push!(pathTemp,t);
+                end
+                if !(pathTemp in possiblePath)
+                    push!(matchedTrial,n);
+                    push!(possiblePath,pathTemp);
+                end
             end
         end
         if trialPaths != []

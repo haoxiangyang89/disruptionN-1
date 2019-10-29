@@ -283,3 +283,7 @@ function simuPath(τ,T,pDistr)
     end
     return pathList;
 end
+
+function pathSimu_cover(pathHist, N)
+    # maximize the coverage from the sample
+end

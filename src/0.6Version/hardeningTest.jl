@@ -2,10 +2,9 @@
 addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
-pmap(i -> importIpopt(),1:30);
 
 fileAdd = "case13_ieee.m";
-fData = readStatic(fileAdd,500);
+fData = readStatic(fileAdd,10000);
 disAdd = "testProbRead_96.csv"
 pDistr = readDisruption(disAdd,"csv");
 pAdd = "testDataP_96_Fixed.csv";
@@ -22,11 +21,19 @@ pDistr = modifyT(pDistr,4/T,T);
 
 # obtain the no hardening costs for comparison
 ΩSet = [3,5,(2,9),(8,12),(10,13)];
-
+for ω in keys(pDistr.ωDistrn)
+    if !(ω in ΩSet)
+        pDistr = modifyOmega(pDistr,ω);
+    end
+end
+cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
 data = Dict();
+data[0] = [cutDict,LBHist,UBHist,UBuHist,UBlHist];
+
 for ω in ΩSet
-    # pDistrNew = modifyOmega(pDistr,ω);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20, Dict(), 0, [ω]);
+    pDistrNew = modifyOmega(pDistr,ω);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistrNew, bData, dData, N, false, 20, 20);
+    # cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20, Dict(), 0, [ω]);
     data[ω] = [cutDict,LBHist,UBHist,UBuHist,UBlHist];
-    save("hardOut.jld","data",data);
+    save("hardOut_10000.jld","data",data);
 end
