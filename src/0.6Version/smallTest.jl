@@ -1,6 +1,6 @@
 # a diagnostic small test for extensive formulation
 τ = 1;
-T = 3;
+T = 5;
 Δt = 0.25;
 N = 10;
 pDistr = modifyT(pDistr,1/3,T);

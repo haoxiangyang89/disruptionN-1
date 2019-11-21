@@ -529,9 +529,14 @@ function exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDic
     end
     for t in T:-1:2
         matchedTrial = [];
+        possiblePath = [];
         for n in keys(trialPaths)
+            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
             if t in tpDict[n]
-                push!(matchedTrial,n);
+                if !(pathTemp in possiblePath)
+                    push!(matchedTrial,n);
+                    push!(possiblePath,pathTemp);
+                end
             end
         end
         if trialPaths != []
@@ -562,10 +567,7 @@ function exeBackwardAll(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cut
         matchedTrial = [];
         for n in keys(trialPaths)
             if t in tpDict[n]
-                pathTemp = [trialPaths[n][i][2] for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] <= t];
-                if !(t in pathTemp)
-                    push!(pathTemp,t);
-                end
+                pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
                     push!(possiblePath,pathTemp);
