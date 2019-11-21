@@ -1,6 +1,6 @@
 # main program structure construction
 
-function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubM = 200, hardened = [])
+function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, allGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [])
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
@@ -38,7 +38,11 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, ubGen = false, it
         if (currentLB <= currentUBu)&(currentLB >= currentUBl)&(iterNo >= iterMin)
             keepIter = false;
         else
-            cutDict = exeBackwardAll(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
+            if allGen
+                cutDict = exeBackwardAll(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
+            else
+                cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
+            end
         end
         println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
     end
