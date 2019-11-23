@@ -11,9 +11,11 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
     UBHist = [];
     UBuHist = [];
     UBlHist = [];
+    timeHist = [];
     # while the termination criteria is not met
     while (keepIter)&(iterNo <= iterMax)
         iterNo += 1;
+        iterStart = time();
         # forward pass: obtain the trial paths
         if !(ubGen)
             trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, Dict(), hardened);
@@ -44,9 +46,11 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
                 cutDict = exeBackward(τ, T, Δt, trialPaths, cutDict, hardened);
             end
         end
+        iterElapsed = time() - iterStart;
+        push!(timeHist,iterElapsed);
         println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
     end
-    return cutDict,LBHist,UBHist,UBuHist,UBlHist;
+    return cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist;
 end
 
 function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubM = 200, hardened = [])
