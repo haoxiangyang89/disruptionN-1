@@ -1,5 +1,5 @@
 # forward pass of the SDDP algorithm
-function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true)
+function noDisruptionBuild(Δt, T, cutDict, solveOpt = true)
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -175,7 +175,7 @@ function noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict, solveOp
     end
 end
 
-function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, solveOpt = true, hardened = [])
+function fBuild(td, ωd, currentSol, τ, Δt, T, cutDict, solveOpt = true, hardened = [])
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -387,19 +387,19 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cu
     end
 end
 
-function constructForwardM(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, hardenend = [])
+function constructForwardM(td, ωd, sol, τ, Δt, T, cutDict, hardenend = [])
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
-        sol,objV = noDisruptionBuild(Δt, T, fData, bData, dData, pDistr, cutDict);
+        sol,objV = noDisruptionBuild(Δt, T, cutDict);
     else
         # if it is f_{ht}^ω
-        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, true, hardenend);
+        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, cutDict, true, hardenend);
     end
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = [], hardened = [])
+function buildPath(τ, T, Δt, cutDict, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
     costn = 0;
@@ -410,7 +410,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = 
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData, pDistr, cutDict, hardened);
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, cutDict, hardened);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
@@ -438,7 +438,7 @@ function buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathList = 
     return [solHist,currentLB,costn];
 end
 
-function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDict = Dict(), hardened = [])
+function exeForward(τ, T, Δt, N, cutDict, pathDict = Dict(), hardened = [])
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts
@@ -458,7 +458,7 @@ function exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDic
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, fData, bData, dData, pDistr, cutDict, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(τ, T, Δt, cutDict, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];

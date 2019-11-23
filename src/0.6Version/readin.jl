@@ -562,7 +562,7 @@ end
 
 function readStatic(fileName::String, cz = 1e7)
     # read in the static network information from a .m file (MatPower)
-    busST,genST,brST,cST,uST,baseMVA = readMP(fileAdd);
+    busST,genST,brST,cST,uST,baseMVA = readMP(fileName);
     IDList,Vmax,Vmin,gs,bs,Vmag,Vang,Pd,Qd,bType = parsebusST(busST,baseMVA);
     genIDList,Loc,LocRev,Pmax,Pmin,Qmax,Qmin,Pg,Qg,RU,RD = parsegenST(genST,baseMVA);
     brList,brRev,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ = parsebrST(brST,baseMVA);
@@ -709,4 +709,18 @@ function readDemand(fileNameP, fileNameQ, fileType)
     else
         println("Currently your file type is not supported");
     end
+end
+
+function readInData(i,caseList,T)
+    fileAdd = "case$(caseList[i])_ieee.m";
+    global fData = readStatic(fileAdd,10000);
+    disAdd = "testProbRead_$(caseList[i]).csv"
+    global pDistr = readDisruption(disAdd,"csv");
+    pAdd = "testDataP_$(caseList[i]).csv";
+    qAdd = "testDataQ_$(caseList[i]).csv";
+    global dData = readDemand(pAdd,qAdd,"csv");
+    bAdd = "testDataB_$(caseList[i]).csv";
+    global bData = readBattery(bAdd,"csv");
+
+    global pDistr = modifyT(pDistr,4/T,T);
 end

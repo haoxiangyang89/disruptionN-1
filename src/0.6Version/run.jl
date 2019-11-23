@@ -4,18 +4,10 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 #pmap(i -> importIpopt(),1:30);
 
-caseList = [13,33,123];
+@everywhere caseList = [13,33,123];
+@everywhere i = 1;
 
-i = 1;
-fileAdd = "case$(caseList[i])_ieee.m";
-fData = readStatic(fileAdd,10000);
-disAdd = "testProbRead_$(caseList[i]).csv"
-pDistr = readDisruption(disAdd,"csv");
-pAdd = "testDataP_$(caseList[i]).csv";
-qAdd = "testDataQ_$(caseList[i]).csv";
-dData = readDemand(pAdd,qAdd,"csv");
-bAdd = "testDataB_$(caseList[i]).csv";
-bData = readBattery(bAdd,"csv");
+@everywhere fData,pDistr,dData,bData = readInData(i,caseList);
 
 T = 96;
 τ = T/6;

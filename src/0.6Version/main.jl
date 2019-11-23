@@ -1,6 +1,6 @@
 # main program structure construction
 
-function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, allGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [])
+function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [])
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
@@ -16,7 +16,7 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, allGen = false, i
         iterNo += 1;
         # forward pass: obtain the trial paths
         if !(ubGen)
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, Dict(), hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, Dict(), hardened);
             push!(LBHist,currentLB);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
@@ -25,9 +25,9 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, allGen = false, i
             currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
             push!(UBlHist,currentUBl);
         else
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, Dict(), hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, Dict(), hardened);
             push!(LBHist,currentLB);
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, ubM, cutDict, Dict(), hardened);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, cutDict, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
             currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
@@ -39,9 +39,9 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, allGen = false, i
             keepIter = false;
         else
             if allGen
-                cutDict = exeBackwardAll(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
+                cutDict = exeBackwardAll(τ, T, Δt, trialPaths, cutDict, hardened);
             else
-                cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
+                cutDict = exeBackward(τ, T, Δt, trialPaths, cutDict, hardened);
             end
         end
         println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
@@ -49,7 +49,7 @@ function solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, allGen = false, i
     return cutDict,LBHist,UBHist,UBuHist,UBlHist;
 end
 
-function solveMain_simuRules(τ, T, Δt, fData, pDistr, bData, dData, N, simuRule, ubGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubM = 200, hardened = [])
+function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubM = 200, hardened = [])
     # readin data and execute the SDDP algorithm
     # simulation rule 0: MC simulation
     # simulation rule 1: to cover as many time period as it can
@@ -73,7 +73,7 @@ function solveMain_simuRules(τ, T, Δt, fData, pDistr, bData, dData, N, simuRul
         end
         # forward pass: obtain the trial paths
         if !(ubGen)
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDict, hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, pathDict, hardened);
             push!(LBHist,currentLB);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
@@ -82,9 +82,9 @@ function solveMain_simuRules(τ, T, Δt, fData, pDistr, bData, dData, N, simuRul
             currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
             push!(UBlHist,currentUBl);
         else
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, N, cutDict, pathDict, hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, pathDict, hardened);
             push!(LBHist,currentLB);
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, fData, bData, dData, pDistr, ubM, cutDict, Dict(), hardened);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, cutDict, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
             currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
@@ -95,7 +95,7 @@ function solveMain_simuRules(τ, T, Δt, fData, pDistr, bData, dData, N, simuRul
         if (currentLB <= currentUBu)&(currentLB >= currentUBl)&(iterNo >= iterMin)
             keepIter = false;
         else
-            cutDict = exeBackward(τ, T, Δt, fData, pDistr, bData, dData, trialPaths, cutDict, hardened);
+            cutDict = exeBackward(τ, T, Δt, trialPaths, cutDict, hardened);
         end
         println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
     end

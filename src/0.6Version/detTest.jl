@@ -4,20 +4,10 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
 caseList = [13,33,123];
+NN = 1000;
+Δt = 0.25;
 
 for ci in 1:length(caseList)
-    fileAdd = "case$(caseList[ci])_ieee.m";
-    fData = readStatic(fileAdd,10000);
-    disAdd = "testProbRead_$(caseList[ci]).csv"
-    pDistr = readDisruption(disAdd,"csv");
-    pAdd = "testDataP_$(caseList[ci]).csv";
-    qAdd = "testDataQ_$(caseList[ci]).csv";
-    dData = readDemand(pAdd,qAdd,"csv");
-    bAdd = "testDataB_$(caseList[ci]).csv";
-    bData = readBattery(bAdd,"csv");
-
-    NN = 1000;
-    Δt = 0.25;
     TList = [12,24,48,72,96];
     pathListDRaw = load("pathHist.jld");
     pathDictA = pathListDRaw["pathDict"];
@@ -26,7 +16,9 @@ for ci in 1:length(caseList)
     stochOut = Dict();
     for T in TList
         τ = Int64(1/6*T);
-        pDistr = modifyT(pDistr,4/T,T);
+        for j in procs()
+            remotecall_fetch(readInData,j,ci,caseList,T);
+        end
 
         # select a preset pathDict
         pathDict = pathDictA[T];
@@ -38,7 +30,7 @@ for ci in 1:length(caseList)
         detOut[T] = [costDet,listDet,meanDet,sigmaDet];
 
         cutDict = stochDataRaw["policyDict"][T][1];
-        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, fData, bData, dData, pDistr, NN, cutDict, pathDict);
+        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, cutDict, pathDict);
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
