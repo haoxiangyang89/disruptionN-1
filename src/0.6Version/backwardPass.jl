@@ -488,7 +488,7 @@ function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, hardened =
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, cutDict, true, hardened), paraSet);
+    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, true, hardened), paraSet);
     for j in procs()
         remotecall_fetch(cutUpdate,j,td,Ω,paraSet,cutCurrentData);
     end

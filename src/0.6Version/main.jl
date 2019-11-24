@@ -12,13 +12,18 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
     UBuHist = [];
     UBlHist = [];
     timeHist = [];
+    # initialize the cutDict
+    for j in procs()
+        remotecall_fetch(cutIni,j,cutDict);
+    end
+
     # while the termination criteria is not met
     while (keepIter)&(iterNo <= iterMax)
         iterNo += 1;
         iterStart = time();
         # forward pass: obtain the trial paths
         if !(ubGen)
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, Dict(), hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, Dict(), hardened);
             push!(LBHist,currentLB);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
@@ -27,9 +32,9 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
             currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
             push!(UBlHist,currentUBl);
         else
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, Dict(), hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, Dict(), hardened);
             push!(LBHist,currentLB);
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, cutDict, Dict(), hardened);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
             currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
@@ -41,9 +46,9 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
             keepIter = false;
         else
             if allGen
-                cutDict = exeBackwardAll(τ, T, Δt, trialPaths, cutDict, hardened);
+                exeBackwardAll(τ, T, Δt, trialPaths, hardened);
             else
-                cutDict = exeBackward(τ, T, Δt, trialPaths, cutDict, hardened);
+                exeBackward(τ, T, Δt, trialPaths, hardened);
             end
         end
         iterElapsed = time() - iterStart;
