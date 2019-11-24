@@ -287,3 +287,28 @@ end
 function pathSimu_cover(pathHist, N)
     # maximize the coverage from the sample
 end
+
+# initialize the cutData in every core
+function cutIni(cutData)
+    global cutDict = cutData;
+end
+
+# update the cutData in every core with the new cuts
+function cutUpdate(td,Ω,paraSet,cutCurrentData)
+    # cutCurrentData is a list
+    for ω in Ω
+        itemInd = 0;
+        for item in paraSet
+            itemInd += 1;
+            if item[1] == ω
+                if (cutCurrentData[itemInd].solStatus == :Optimal)
+                    if (td,ω) in keys(cutDict)
+                        push!(cutDict[td,ω],cutCurrentData[itemInd]);
+                    else
+                        cutDict[td,ω] = [cutCurrentData[itemInd]];
+                    end
+                end
+            end
+        end
+    end
+end

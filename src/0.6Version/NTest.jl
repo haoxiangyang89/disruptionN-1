@@ -23,7 +23,7 @@ for ci in 1:length(caseList)
         startT = time();
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20));
         elapsedT = time() - startT;
-        dataList[N] = [cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
+        dataList[N] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 
         save("NResults_$(ci).jld","NOut",dataList);
     end

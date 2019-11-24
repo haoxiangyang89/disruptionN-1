@@ -1,5 +1,5 @@
 # backward pass of the SDDP algorithm
-function fBuild_D(td, ωd, currentPath, τ, Δt, T, cutDict, solveOpt = true, hardened = [])
+function fBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = [])
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
     # precalculate data
@@ -182,7 +182,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, cutDict, solveOpt = true, ha
     end
 end
 
-function dfBuild_D(td, ωd, currentPath, τ, Δt, T, cutDict, solveOpt = true, hardened = [])
+function dfBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = [])
     # trying to find the previous solution that can be used for this td
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
@@ -483,27 +483,14 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, cutDict, solveOpt = true, h
 
 end
 
-function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, cutDict, hardened = [])
+function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, hardened = [])
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
     cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, cutDict, true, hardened), paraSet);
-    # cutCurrentData is a list
-    for ω in Ω
-        itemInd = 0;
-        for item in paraSet
-            itemInd += 1;
-            if item[1] == ω
-                if (cutCurrentData[itemInd].solStatus == :Optimal)
-                    if (td,ω) in keys(cutDict)
-                        push!(cutDict[td,ω],cutCurrentData[itemInd]);
-                    else
-                        cutDict[td,ω] = [cutCurrentData[itemInd]];
-                    end
-                end
-            end
-        end
+    for j in procs()
+        remotecall_fetch(cutUpdate,j,td,Ω,paraSet,cutCurrentData);
     end
 
     # for ω in Ω
@@ -515,13 +502,13 @@ function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, cutDict, h
     #         cutDict[td,ω] = [cutCurrent];
     #     end
     # end
-    return cutDict;
+    # return cutDict;
 end
 
-function exeBackward(τ, T, Δt, trialPaths, cutDict, hardened = [])
+function exeBackward(τ, T, Δt, trialPaths, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
-    #        cutDict: previously generated cuts
+    #        cutDict: previously generated cuts (preset in every core)
     # output: update the cutDict
     tpDict = Dict();
     for n in keys(trialPaths)
@@ -540,17 +527,16 @@ function exeBackward(τ, T, Δt, trialPaths, cutDict, hardened = [])
             end
         end
         if trialPaths != []
-            cutDict = constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, cutDict, hardened);
+            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, hardened);
         end
         println("Time $(t) Passed");
     end
-    return cutDict;
 end
 
-function exeBackwardAll(τ, T, Δt, trialPaths, cutDict, hardened = [])
+function exeBackwardAll(τ, T, Δt, trialPaths, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
-    #        cutDict: previously generated cuts
+    #        cutDict: previously generated cuts (preset in every core)
     # output: update the cutDict
     tpDict = Dict();
     for n in keys(trialPaths)
@@ -575,9 +561,8 @@ function exeBackwardAll(τ, T, Δt, trialPaths, cutDict, hardened = [])
             end
         end
         if trialPaths != []
-            cutDict = constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, cutDict, hardened);
+            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, hardened);
         end
         println("Time $(t) Passed");
     end
-    return cutDict;
 end

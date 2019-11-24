@@ -67,6 +67,11 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
     UBuHist = [];
     UBlHist = [];
     pathHist = [];
+    # initialize the cutDict
+    for j in procs()
+        remotecall_fetch(cutIni,j,cutDict);
+    end
+
     # while the termination criteria is not met
     while (keepIter)&(iterNo <= iterMax)
         iterNo += 1;
@@ -77,7 +82,7 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
         end
         # forward pass: obtain the trial paths
         if !(ubGen)
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, pathDict, hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, pathDict, hardened);
             push!(LBHist,currentLB);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
@@ -86,9 +91,9 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
             currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
             push!(UBlHist,currentUBl);
         else
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, cutDict, pathDict, hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, pathDict, hardened);
             push!(LBHist,currentLB);
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, cutDict, Dict(), hardened);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
             currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
@@ -99,7 +104,7 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
         if (currentLB <= currentUBu)&(currentLB >= currentUBl)&(iterNo >= iterMin)
             keepIter = false;
         else
-            cutDict = exeBackward(τ, T, Δt, trialPaths, cutDict, hardened);
+            exeBackward(τ, T, Δt, trialPaths, hardened);
         end
         println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
     end
