@@ -1,5 +1,5 @@
 # backward pass of the SDDP algorithm
-function fBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = [])
+function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
     # precalculate data
@@ -41,8 +41,11 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = 
         Bparams[i,td - 1] = 1;
     end
 
-    #mp = Model(solver = GurobiSolver(GUROBI_ENV, OutputFlag = 0, QCPDual = 1));
-    mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    if qpopt
+        mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    else
+        mp = Model(solver = GurobiSolver(GUROBI_ENV, OutputFlag = 0, QCPDual = 1));
+    end
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
@@ -91,14 +94,19 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = 
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
+    if qpopt
+        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
+        @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
+    else
+        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
+        @constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+    end
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
     @constraint(mp, powerflow1[k in fData.brList, t in td:T;Bparams[k,t] == 1], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
     @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
     @constraint(mp, bThermal2[i in bData.IDList, t in td:T], zq[i,t] <= u[i]);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
@@ -182,7 +190,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = 
     end
 end
 
-function dfBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened = [])
+function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
     # trying to find the previous solution that can be used for this td
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
@@ -225,8 +233,11 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened =
         Bparams[i,td - 1] = 1;
     end
 
-    #dp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
-    dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    if qpopt
+        dp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    else
+        dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    end
 
     # simple bounds dual variables
     @variable(dp, λspu[i in fData.genIDList,t in td:T] >= 0);
@@ -363,55 +374,57 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened =
         -μ3[i,t,2] + λgcAux3[i,t] == 0);
 
     # SOCP
-    for t in td:T
-        for k in fData.brList
-            if Bparams[k,t] == 1
-                μ1List = [μ1[k,t,1],μ1[k,t,2]];
-                @constraint(dp,norm(μ1List) <= ν1[k,t]);
+    if qpopt
+        for t in td:T
+            for k in fData.brList
+                if Bparams[k,t] == 1
+                    @constraint(dp, μ1[k,t,1]^2 + μ1[k,t,2]^2 <= ν1[k,t]^2);
+                end
+            end
+            for i in bData.IDList
+                @constraint(dp, μ2[i,t,1]^2 + μ2[i,t,2]^2 <= ν2[i,t]^2);
+            end
+            for i in fData.genIDList
+                if fData.cp[i].n == 3
+                    @constraint(dp, μ3[i,t,1]^2 + μ3[i,t,1]^2 <= ν3[i,t]^2);
+                end
             end
         end
-        for i in bData.IDList
-            μ2List = [μ2[i,t,1],μ2[i,t,2]];
-            @constraint(dp,norm(μ2List) <= ν2[i,t]);
-        end
-        for i in fData.genIDList
-            if fData.cp[i].n == 3
-                μ3List = [μ3[i,t,1],μ3[i,t,2]];
-                @constraint(dp,norm(μ3List) <= ν3[i,t]);
+    else
+        for t in td:T
+            for k in fData.brList
+                if Bparams[k,t] == 1
+                    μ1List = [μ1[k,t,1],μ1[k,t,2]];
+                    @constraint(dp,norm(μ1List) <= ν1[k,t]);
+                end
+            end
+            for i in bData.IDList
+                μ2List = [μ2[i,t,1],μ2[i,t,2]];
+                @constraint(dp,norm(μ2List) <= ν2[i,t]);
+            end
+            for i in fData.genIDList
+                if fData.cp[i].n == 3
+                    μ3List = [μ3[i,t,1],μ3[i,t,2]];
+                    @constraint(dp,norm(μ3List) <= ν3[i,t]);
+                end
             end
         end
     end
 
     # objective function
-    objExpr = @expression(dp, sum(sum(-λspu[i,t]*fData.Pmax[i]*Bparams[i,t] - λspl[i,t]*fData.Pmin[i]*Bparams[i,t] -
+    @objective(dp, Max, sum(sum(-λspu[i,t]*fData.Pmax[i]*Bparams[i,t] - λspl[i,t]*fData.Pmin[i]*Bparams[i,t] -
             λsqu[i,t]*fData.Qmax[i]*Bparams[i,t] - λsql[i,t]*fData.Qmin[i]*Bparams[i,t] -
-            λru[i,t]*fData.RU[i]*Bparams[i,t] - λrd[i,t]*fData.RD[i]*Bparams[i,t] for i in fData.genIDList) for t in td:T));
-    objExpr += sum(sum(-λvu[i,t]*fData.Vmax[i]^2 - λvl[i,t]*fData.Vmin[i]^2 - λpb[i,t]*dData.pd[i][t] - λqb[i,t]*dData.qd[i][t]
-            for i in fData.IDList) for t in td:T);
-    objExpr += sum(sum(-ν1[k,t]*fData.rateA[k]*Bparams[k,t] for k in fData.brList) +
+            λru[i,t]*fData.RU[i]*Bparams[i,t] - λrd[i,t]*fData.RD[i]*Bparams[i,t] for i in fData.genIDList) for t in td:T) +
+            sum(sum(-λvu[i,t]*fData.Vmax[i]^2 - λvl[i,t]*fData.Vmin[i]^2 - λpb[i,t]*dData.pd[i][t] - λqb[i,t]*dData.qd[i][t]
+            for i in fData.IDList) for t in td:T) + sum(sum(-ν1[k,t]*fData.rateA[k]*Bparams[k,t] for k in fData.brList) +
             sum(-λwu[i,t]*bData.cap[i] - sum(λbCoeff[i,l,t]*bData.ηβ[i][l] for l in 1:length(bData.ηα[i]))
-            for i in bData.IDList) for t in td:T);
-    objExpr += sum(-λsp[i]*currentSol.sp[i,td - 1] for i in fData.genIDList) +
-        sum(-λuu[i]*bData.uCap[i] - λu[i]*currentSol.u[i] - λw[i]*currentSol.w[i,td - 1] for i in bData.IDList);
-
-    for t in td:T
-        for i in fData.genIDList
-            if fData.cp[i].n == 3
-                objExpr += -λgcAux1[i,t]*((fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1])) -
-                    λgcAux2[i,t]*((-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1])) -
-                    λgcAux3[i,t]*(fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
-            end
-        end
-    end
-
-    for tp in (td + τ + 1):T
-        for ω in Ω
-            if (tp,ω) in keys(cutDict)
-                objExpr -= sum(λcuts[tp,ω,l]*cutDict[tp,ω][l].vhat for l in 1:length(cutDict[tp,ω]));
-            end
-        end
-    end
-    @objective(dp, Max, objExpr);
+            for i in bData.IDList) for t in td:T) + sum(-λsp[i]*currentSol.sp[i,td - 1] for i in fData.genIDList) +
+            sum(-λuu[i]*bData.uCap[i] - λu[i]*currentSol.u[i] - λw[i]*currentSol.w[i,td - 1] for i in bData.IDList) +
+            sum(sum(-λgcAux1[i,t]*((fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1])) -
+            λgcAux2[i,t]*((-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1])) -
+            λgcAux3[i,t]*(fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1]))) for i in fData.genIDList if fData.cp[i].n == 3) for t in td:T) -
+            sum(sum(sum(λcuts[tp,ω,l]*cutDict[tp,ω][l].vhat for l in 1:length(cutDict[tp,ω])) for ω in Ω if (tp,ω) in keys(cutDict)) for tp in (td + τ + 1):T)
+            );
 
     # return the cut or the dual problem
     if solveOpt
@@ -480,15 +493,14 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, solveOpt = true, hardened =
     #     fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
     # @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
     #     norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
-
 end
 
-function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, hardened = [])
+function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, qpopt = false, hardened = [])
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, true, hardened), paraSet);
+    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, qpopt, true, hardened), paraSet);
     for j in procs()
         remotecall_fetch(cutUpdate,j,td,Ω,paraSet,cutCurrentData);
     end
@@ -505,7 +517,7 @@ function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, hardened =
     # return cutDict;
 end
 
-function exeBackward(τ, T, Δt, trialPaths, hardened = [])
+function exeBackward(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts (preset in every core)
@@ -527,13 +539,13 @@ function exeBackward(τ, T, Δt, trialPaths, hardened = [])
             end
         end
         if trialPaths != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, hardened);
+            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end
 end
 
-function exeBackwardAll(τ, T, Δt, trialPaths, hardened = [])
+function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts (preset in every core)
@@ -561,7 +573,7 @@ function exeBackwardAll(τ, T, Δt, trialPaths, hardened = [])
             end
         end
         if trialPaths != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, hardened);
+            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end

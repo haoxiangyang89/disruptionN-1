@@ -1,5 +1,5 @@
 # forward pass of the SDDP algorithm
-function noDisruptionBuild(Δt, T, solveOpt = true)
+function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -10,8 +10,11 @@ function noDisruptionBuild(Δt, T, solveOpt = true)
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
 
     # construct the first stage without disruption occurring
-    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
-    # mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    if qpopt
+        mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    else
+        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    end
 
     # set up the variables
     @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
@@ -60,12 +63,17 @@ function noDisruptionBuild(Δt, T, solveOpt = true)
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
+    if qpopt
+        @constraint(mp, lineThermal[k in fData.brList, t in 1:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
+        @constraint(mp, bThermal[i in bData.IDList, t in 1:T], zp[i,t]^2+zq[i,t]^2 <= u[i]^2);
+    else
+        @constraint(mp, lineThermal[k in fData.brList, t in 1:T], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
+        @constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+    end
     @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in 1:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in 1:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
 
@@ -84,20 +92,25 @@ function noDisruptionBuild(Δt, T, solveOpt = true)
 
     # set up the objective function
     @variable(mp,fs[i in fData.genIDList, t in 1:T]);
-    @variable(mp,tAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3] >= 0);
-    @variable(mp,tAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
-    @variable(mp,tAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
+    if qpopt
+        @constraint(mp, genCost[i in fData.genIDList, t in 1:T], fs[i,t] ==
+            sum(fData.cp[i].params[nco]*sp[i,t]^(fData.cp[i].n - nco) for nco in 1:(fData.cp[i].n - 1)));
+    else
+        @variable(mp,tAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3] >= 0);
+        @variable(mp,tAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
+        @variable(mp,tAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3]);
 
-    @constraint(mp,gcAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
-        (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
-    @constraint(mp,gcAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
-        (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
-    @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
-        fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
-    @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
-        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
-    @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
-        fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+        @constraint(mp,gcAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
+            (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+        @constraint(mp,gcAux2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
+            (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+        @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
+            fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+        @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
+            norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+        @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
+            fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+    end
 
     fDict,lDict,θDict = calDualC1(T, fData, pDistr);
     objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
@@ -175,7 +188,7 @@ function noDisruptionBuild(Δt, T, solveOpt = true)
     end
 end
 
-function fBuild(td, ωd, currentSol, τ, Δt, T, solveOpt = true, hardened = [])
+function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -215,8 +228,11 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, solveOpt = true, hardened = [])
         Bparams[i,td - 1] = 1;
     end
 
-    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
-    # mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    if qpopt
+        mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+    else
+        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    end
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
@@ -265,14 +281,19 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, solveOpt = true, hardened = [])
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
+    if qpopt
+        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2+q[k,t]^2 <= fData.rateA[k]^2);
+        @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2+zq[i,t]^2 <= u[i]^2);
+    else
+        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
+        @constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+    end
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
     @constraint(mp, powerflow1[k in fData.brList, t in td:T;Bparams[k,t] == 1], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
     # @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
     # @constraint(mp, bThermal3[i in bData.IDList, t in td:T], -zp[i,t] <= u[i]);
     # #@constraint(mp, bThermal2[i in bData.IDList, t in 1:T], zq[i,t] <= u[i]);
@@ -297,24 +318,28 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, solveOpt = true, hardened = [])
 
     # set up the objective function
     @variable(mp,fs[i in fData.genIDList, t in td:T]);
-    @variable(mp,tAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3] >= 0);
-    @variable(mp,tAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
-    @variable(mp,tAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+    if qpopt
+        @constraint(mp, genCost[i in fData.genIDList, t in td:T], fs[i,t] ==
+            sum(fData.cp[i].params[nco]*sp[i,t]^(fData.cp[i].n - nco) for nco in 1:(fData.cp[i].n - 1)));
+    else
+        @variable(mp,tAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3] >= 0);
+        @variable(mp,tAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
+        @variable(mp,tAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3]);
 
-    @constraint(mp,gcAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
-        (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
-    @constraint(mp,gcAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
-        (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
-    @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
-        fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
-    @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
-        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
-    @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
-        fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+        @constraint(mp,gcAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux1[i,t] == fs[i,t] +
+            (fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+        @constraint(mp,gcAux2[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux2[i,t] == fs[i,t] +
+            (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
+        @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
+            fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+        @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
+            norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+        @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
+            fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
+    end
 
     fDict,lDict,θDict = calDualC(td, τ, T, fData, pDistr);
-    objExpr = @expression(mp, sum(bData.cost[i]*u[i] for i in bData.IDList) +
-        sum(sum(fDict[i,t]*fs[i,t] for i in fData.genIDList) +
+    objExpr = @expression(mp, sum(sum(fDict[i,t]*fs[i,t] for i in fData.genIDList) +
         sum(lDict[i,t]*(lpp[i,t] + lpm[i,t] + lqp[i,t] + lqm[i,t]) for i in fData.IDList) for t in td:T) +
         sum(sum(θDict[t,ω]*θ[t,ω] for ω in Ω) for t in (td + τ + 1):T));
     @objective(mp, Min, objExpr);
@@ -387,19 +412,19 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, solveOpt = true, hardened = [])
     end
 end
 
-function constructForwardM(td, ωd, sol, τ, Δt, T, hardenend = [])
+function constructForwardM(td, ωd, sol, τ, Δt, T, qpopt = false, hardenend = [])
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
-        sol,objV = noDisruptionBuild(Δt, T);
+        sol,objV = noDisruptionBuild(Δt, T, qpopt);
     else
         # if it is f_{ht}^ω
-        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, true, hardenend);
+        sol,objV = fBuild(td, ωd, sol, τ, Δt, T, qpopt, true, hardenend);
     end
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, pathList = [], hardened = [])
+function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
     costn = 0;
@@ -410,7 +435,7 @@ function buildPath(τ, T, Δt, pathList = [], hardened = [])
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, hardened);
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, qpopt, hardened);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
@@ -438,7 +463,7 @@ function buildPath(τ, T, Δt, pathList = [], hardened = [])
     return [solHist,currentLB,costn];
 end
 
-function exeForward(τ, T, Δt, N, pathDict = Dict(), hardened = [])
+function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = [])
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -458,7 +483,7 @@ function exeForward(τ, T, Δt, N, pathDict = Dict(), hardened = [])
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];

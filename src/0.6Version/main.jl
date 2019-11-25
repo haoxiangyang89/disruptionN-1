@@ -53,7 +53,7 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
         end
         iterElapsed = time() - iterStart;
         push!(timeHist,iterElapsed);
-        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
+        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))], Time = $(iterElapsed) sec. =========")
     end
     return cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist;
 end
@@ -85,6 +85,7 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
         elseif simuRule == 1
             pathDict = pathSimu_cover(pathHist, N);
         end
+        iterStart = time();
         # forward pass: obtain the trial paths
         if !(ubGen)
             trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, pathDict, hardened);
@@ -111,7 +112,9 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
         else
             exeBackward(τ, T, Δt, trialPaths, hardened);
         end
-        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))] =========")
+        iterElapsed = time() - iterStart;
+        push!(timeHist,iterElapsed);
+        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))], Time = $(iterElapsed) sec. =========")
     end
     return cutDict,LBHist,UBHist,UBuHist,UBlHist;
 end
