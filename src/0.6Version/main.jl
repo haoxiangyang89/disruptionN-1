@@ -1,6 +1,6 @@
 # main program structure construction
 
-function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [])
+function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100, iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [])
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
@@ -23,7 +23,7 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
         iterStart = time();
         # forward pass: obtain the trial paths
         if !(ubGen)
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, Dict(), hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, Dict(), hardened);
             push!(LBHist,currentLB);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
@@ -32,9 +32,9 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
             currentUBl = mean(currentUBList) - 1.96*std(currentUBList);
             push!(UBlHist,currentUBl);
         else
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, Dict(), hardened);
+            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, Dict(), hardened);
             push!(LBHist,currentLB);
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, Dict(), hardened);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, qpopt, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
             push!(UBHist,mean(currentUBList));
             currentUBu = mean(currentUBList) + 1.96*std(currentUBList);
@@ -46,9 +46,9 @@ function solveMain(τ, T, Δt, N, allGen = false, iterMin = 100, iterMax = 1000,
             keepIter = false;
         else
             if allGen
-                exeBackwardAll(τ, T, Δt, trialPaths, hardened);
+                exeBackwardAll(τ, T, Δt, trialPaths, qpopt, hardened);
             else
-                exeBackward(τ, T, Δt, trialPaths, hardened);
+                exeBackward(τ, T, Δt, trialPaths, qpopt, hardened);
             end
         end
         iterElapsed = time() - iterStart;
@@ -110,7 +110,7 @@ function solveMain_simuRules(τ, T, Δt, N, simuRule, ubGen = false, iterMin = 1
         if (currentLB <= currentUBu)&(currentLB >= currentUBl)&(iterNo >= iterMin)
             keepIter = false;
         else
-            exeBackward(τ, T, Δt, trialPaths, hardened);
+            exeBackward(τ, T, Δt, trialPaths, qpopt, hardened);
         end
         iterElapsed = time() - iterStart;
         push!(timeHist,iterElapsed);
