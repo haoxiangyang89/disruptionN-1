@@ -284,8 +284,27 @@ function simuPath(τ,T,pDistr)
     return pathList;
 end
 
-function pathSimu_cover(pathHist, N)
+function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
     # maximize the coverage from the sample
+    pathSet = [];
+    for i in 1:(10*N)
+        pathList = simuPath(τ,T,pDistr);
+        push!(pathSet,pathList);
+    end
+
+    sp = model(solver = GurobiSolver(OutputFlag = 0));
+    @variable(sp, x[i in 1:length(pathSet)], Bin);
+    @constraint(sp, sum(x[i] for i in 1:length(pathSet)) == N);
+    @objective(sp, Max, sum(sum((N*iterNo - genCutsCount[t])*x[i] for t in 2:T if t in [pathSet[i][j][1] for j in 1:length(pathSet[i])])
+        for i in 1:length(pathSet)));
+    solve(sp);
+    pathSetsel = Dict();
+    for i in 1:length(pathSet)
+        if getvalue(sp[:x][i]) == 1
+            pathSetsel[i] = pathSet[i];
+        end
+    end
+    return pathSetsel;
 end
 
 # initialize the cutData in every core

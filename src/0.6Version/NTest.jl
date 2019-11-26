@@ -3,7 +3,7 @@
 addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
-pmap(i -> importIpopt(),1:30);
+#pmap(i -> importIpopt(),1:30);
 
 NList = [1,5,10,20,30];
 dataList = Dict();
@@ -22,7 +22,7 @@ for ci in 1:length(caseList)
 
     for N in NList
         startT = time();
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20));
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20));
         elapsedT = time() - startT;
         dataList[N] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 

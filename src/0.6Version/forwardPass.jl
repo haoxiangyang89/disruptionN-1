@@ -495,3 +495,32 @@ function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = 
     currentLB = returnData[1][2];
     return solDict, currentLB, costDict;
 end
+
+function exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt = false, hardened = [])
+    # execution of forward pass, with samples selected to cover more time
+    # input: N: the number of trial points;
+    #       cutDict: set of currently generated cuts (global in every core)
+    # output: solList: a list of solution paths
+    solDict = Dict();
+    costDict = Dict();
+    objV = 0;
+    currentLB = 0;
+    genCutsCount = Dict();
+    for t in 2:T
+        genCutsCount[t] = 0;
+    end
+    pathDict = pathSimu_cover(N, τ, T, pDistr, genCutsCount, iterNo);
+    for i in 1:N
+        # update genCutsCount
+        for j in 1:length(pathDict[i])
+            genCutsCount[pathDict[i][j][1]] += 1;
+        end
+    end
+    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    for n in 1:N
+        solDict[n] = returnData[n][1];
+        costDict[n] = returnData[n][3];
+    end
+    currentLB = returnData[1][2];
+    return solDict, currentLB, costDict;
+end
