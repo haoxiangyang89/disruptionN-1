@@ -287,24 +287,74 @@ end
 function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
     # maximize the coverage from the sample
     pathSet = [];
+    pathTimeList = [];
     for i in 1:(10*N)
         pathList = simuPath(τ,T,pDistr);
         push!(pathSet,pathList);
+        pathTimes = [];
+        tNow = 1;
+        for j in 1:length(pathList)
+            if tNow == 1
+                tNow += pathList[j][1];
+            else
+                tNow += τ + pathList[j][1];
+            end
+            if tNow < T
+                push!(pathTimes, tNow);
+            end
+        end
+        push!(pathTimeList, pathTimes);
     end
 
-    sp = model(solver = GurobiSolver(OutputFlag = 0));
+    sp = Model(solver = GurobiSolver(OutputFlag = 0));
     @variable(sp, x[i in 1:length(pathSet)], Bin);
     @constraint(sp, sum(x[i] for i in 1:length(pathSet)) == N);
-    @objective(sp, Max, sum(sum((N*iterNo - genCutsCount[t])*x[i] for t in 2:T if t in [pathSet[i][j][1] for j in 1:length(pathSet[i])])
+    @objective(sp, Max, sum(sum((N*iterNo - genCutsCount[t])*x[i] for t in 2:T if t in [pathTimeList[i][j] for j in 1:length(pathTimeList[i])])
         for i in 1:length(pathSet)));
     solve(sp);
     pathSetsel = Dict();
+    pathTimesel = Dict();
+    iCount = 0;
     for i in 1:length(pathSet)
         if getvalue(sp[:x][i]) == 1
-            pathSetsel[i] = pathSet[i];
+            iCount += 1;
+            pathSetsel[iCount] = pathSet[i];
+            pathTimesel[iCount] = pathTimeList[i];
         end
     end
-    return pathSetsel;
+    return pathSetsel,pathTimesel;
+end
+
+function pathSimu_cover_last(N,τ,T,pDistr)
+    # maximize the coverage for the terminal stage problem from the sample
+    pathSet = [];
+    pathTimeList = [];
+    selNo = 0;
+    while selNo < N
+        pathList = simuPath(τ,T,pDistr);
+        pathTimes = [];
+        tNow = 1;
+        τList = false;
+        for j in 1:length(pathList)
+            if tNow == 1
+                tNow += pathList[j][1];
+            else
+                tNow += τ + pathList[j][1];
+            end
+            if tNow < T
+                push!(pathTimes, tNow);
+                if tNow >= T - τ
+                    τList = true;
+                end
+            end
+        end
+        if τList
+            push!(pathSet,pathList);
+            push!(pathTimeList, pathTimes);
+            selNo += 1;
+        end
+    end
+    return pathSet,pathTimeList;
 end
 
 # initialize the cutData in every core

@@ -57,3 +57,29 @@ function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
     end
     return cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist;
 end
+
+function preGen(τ, T, Δt, N, iterMax, qpopt = false, cutDict = Dict(), hardened = [])
+    # pregenerate cuts
+
+    UB = 9999999999;
+    LB = -9999999999;
+    iterNo = 0;
+    keepIter = true;
+    LBHist = [];
+    UBHist = [];
+    UBuHist = [];
+    UBlHist = [];
+    timeHist = [];
+    # initialize the cutDict
+    for j in procs()
+        remotecall_fetch(cutIni,j,cutDict);
+    end
+
+    while iterNo <= iterMax
+        iterNo += 1;
+        trialPaths,currentLB,currentUBDict = exeForward_last(τ, T, Δt, N, qpopt, hardened);
+        exeBackward_last(τ, T, Δt, trialPaths, qpopt, hardened);
+    end
+
+    return cutDict;
+end

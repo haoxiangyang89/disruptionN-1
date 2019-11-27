@@ -545,6 +545,34 @@ function exeBackward(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
     end
 end
 
+function exeBackward_last(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
+    # execution of forward pass
+    # input: trialPaths: the collection of trial points
+    #        cutDict: previously generated cuts (preset in every core)
+    # output: update the cutDict
+    tpDict = Dict();
+    for n in keys(trialPaths)
+        tpDict[n] = [trialPaths[n][i][2] for i in 1:length(trialPaths[n])];
+    end
+    for t in T:-1:(T-τ)
+        matchedTrial = [];
+        possiblePath = [];
+        for n in keys(trialPaths)
+            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+            if t in tpDict[n]
+                if !(pathTemp in possiblePath)
+                    push!(matchedTrial,n);
+                    push!(possiblePath,pathTemp);
+                end
+            end
+        end
+        if trialPaths != []
+            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+        end
+        println("Time $(t) Passed");
+    end
+end
+
 function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
