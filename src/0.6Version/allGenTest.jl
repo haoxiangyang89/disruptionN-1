@@ -23,6 +23,9 @@ for ci in 1:length(caseList)
     elapsedT = time() - startT;
     dataList["dOnly"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 
+    save("dOnlyResults_$(ci).jld","data",dataList);
+
+
     startT = time();
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20));
     elapsedT = time() - startT;
