@@ -711,7 +711,7 @@ function readDemand(fileNameP, fileNameQ, fileType)
     end
 end
 
-function readInData(i,caseList,T)
+function readInData(i,caseList,T,λD = 0)
     fileAdd = "case$(caseList[i])_ieee.m";
     global fData = readStatic(fileAdd,10000);
     disAdd = "testProbRead_$(caseList[i]).csv"
@@ -722,5 +722,9 @@ function readInData(i,caseList,T)
     bAdd = "testDataB_$(caseList[i]).csv";
     global bData = readBattery(bAdd,"csv");
 
-    global pDistr = modifyT(pDistr,4/T,T);
+    if λD == 0
+        global pDistr = modifyT(pDistr,4/T,T);
+    else
+        global pDistr = modifyT(pDistr,λD,T);
+    end
 end

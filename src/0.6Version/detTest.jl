@@ -6,12 +6,13 @@ addprocs(30);
 caseList = [13,33,123];
 NN = 1000;
 Δt = 0.25;
+N = 5;
+iterMax = 20;
 
 for ci in 1:length(caseList)
-    TList = [12,24,48,72,96];
-    pathListDRaw = load("pathHist.jld");
-    pathDictA = pathListDRaw["pathDict"];
-    stochDataRaw = load("policy_trained.jld");
+    TList = [24,36,48,72,96];
+    pathListDRaw = load("pathHist_1000.jld");
+    pathDictA = pathListDRaw["pathDict"][ci];
     detOut = Dict();
     stochOut = Dict();
     for T in TList
@@ -29,8 +30,14 @@ for ci in 1:length(caseList)
         println(round(meanDet,2)," ",round(meanDet - 1.96*sigmaDet,2)," ",round(meanDet + 1.96*sigmaDet,2));
         detOut[T] = [costDet,listDet,meanDet,sigmaDet];
 
-        cutDict = stochDataRaw["policyDict"][T][1];
-        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, cutDict, pathDict);
+        # train the stochastic programming strategy
+        cutDictPG = preGen(τ, T, Δt, N, iterMax);
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20),cutDictPG);
+        for j in procs()
+            remotecall_fetch(cutIni,j,cutDict);
+        end
+
+        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDict);
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);

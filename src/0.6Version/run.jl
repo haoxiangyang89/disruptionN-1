@@ -4,10 +4,7 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 #pmap(i -> importIpopt(),1:30);
 
-@everywhere caseList = [13,33,123];
-@everywhere i = 1;
-
-@everywhere fData,pDistr,dData,bData = readInData(i,caseList);
+caseList = [13,33,123];
 
 T = 96;
 τ = T/6;

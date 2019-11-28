@@ -4,40 +4,28 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
 Δt = 0.25;
-N = 30;
-NN = 1000;
-fileAdd = "case13_ieee.m";
-fData = readStatic(fileAdd,500);
-disAdd = "testProbRead_96.csv"
-pDistr = readDisruption(disAdd,"csv");
-pAdd = "testDataP_96_Fixed.csv";
-qAdd = "testDataQ_96_Fixed.csv";
-dData = readDemand(pAdd,qAdd,"csv");
-bAdd = "testDataB.csv";
-bData = readBattery(bAdd,"csv");
+N = 5;
+iterMax = 20;
 
-pathDict = Dict();
-TList = [12,24,48,72,96];
-for T in TList
-    τ = Int64(1/6*T);
-    pDistr = modifyT(pDistr,4/T,T);
-
-    pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NN);
-    pathDict[T] = Dict();
-    for i in 1:length(pathListData)
-        pathDict[T][i] = pathListData[i];
-    end
-
-end
-save("pathHist.jld","pathDict",pathDict);
+caseList = [13,33,123];
 
 policyDict = Dict();
-for T in TList
-    τ = Int64(1/6*T);
-    pDistr = modifyT(pDistr,4/T,T);
-    tic();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
-    runTime = toc();
-    policyDict[T] = [cutDict,LBHist,UBHist,UBuHist,UBlHist,runTime];
-    save("policy_trained.jld","policyDict",policyDict);
+for ci in 1:length(caseList)
+    for T in TList
+        τ = Int64(1/6*T);
+        for j in procs()
+            remotecall_fetch(readInData,j,ci,caseList,T);
+        end
+
+        startPGT = time();
+        cutDictPG = preGen(τ, T, Δt, N, iterMax);
+        preGenT = time() - startPGT;
+
+        startT = time();
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20),cutDictPG);
+        elapsedT = time() - startT;
+
+        policyDict[T] = [cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
+        save("policy_trained_$(ci).jld","policyDict",policyDict);
+    end
 end
