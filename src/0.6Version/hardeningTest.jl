@@ -4,7 +4,6 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
 N = 5;
-dataList = Dict();
 
 caseList = [13,33,123];
 Δt = 0.25;
@@ -12,6 +11,7 @@ iterMax = 20;
 T = 24;
 
 for ci in 1:length(caseList)
+    dataList = Dict();
     τ = Int64(1/6*T);
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T);

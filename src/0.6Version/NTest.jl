@@ -23,7 +23,7 @@ for ci in 1:length(caseList)
 
     for N in NList
         startPGT = time();
-        cutDictPG = preGen(τ, T, Δt, N, iterMax);
+        cutDictPG = preGen(τ, T, Δt, NN, iterMax);
         preGenT = time() - startPGT;
 
         startT = time();

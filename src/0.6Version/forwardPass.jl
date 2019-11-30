@@ -126,7 +126,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         statusMp = solve(mp);
         if statusMp != :Optimal
-            mp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,,Threads = 1);
+            mp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,Threads = 1);
             statusMp = solve(mp);
         end
         #with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
