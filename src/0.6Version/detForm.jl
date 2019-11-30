@@ -9,7 +9,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     end
 
     # construct the first stage without disruption occurring
-    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
 
     # set up the variables
     @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
@@ -186,7 +186,7 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         Bparams[i,td - 1] = 1;
     end
 
-    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);

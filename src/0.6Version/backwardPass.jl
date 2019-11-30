@@ -44,7 +44,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
     if qpopt
         mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
     else
-        mp = Model(solver = GurobiSolver(GUROBI_ENV, OutputFlag = 0, QCPDual = 1));
+        mp = Model(solver = GurobiSolver(GUROBI_ENV, OutputFlag = 0, QCPDual = 1,,Threads = 1));
     end
 
     # set up the variables
@@ -236,7 +236,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     if qpopt
         dp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
     else
-        dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0));
+        dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
     end
 
     # simple bounds dual variables
