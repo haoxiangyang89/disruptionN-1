@@ -25,5 +25,5 @@ for ci in 1:length(caseList)
         dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
     end
 
-    save("hardResults.jld","data",dataList);
+    save("hardResults_$(ci).jld","data",dataList);
 end
