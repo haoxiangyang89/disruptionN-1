@@ -292,6 +292,7 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         solu = Dict();
         solLp = Dict();
         solLq = Dict();
+        solzp = Dict();
         for i in fData.genIDList
             for t in td:T
                 if abs(getvalue(sp[i,t])) > 1e-5
