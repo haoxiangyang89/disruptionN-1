@@ -102,6 +102,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         solu = Dict();
         solLp = Dict();
         solLq = Dict();
+        solzp = Dict();
         for i in fData.genIDList
             for t in 1:T
                 if abs(getvalue(sp[i,t])) > 1e-5
@@ -125,11 +126,13 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
                     else
                         solw[i,t] = 0;
                     end
+                    solzp[i,t] = getvalue(zp[i,t]);
                 end
             else
                 solu[i] = 0;
                 for t in 1:T
                     solw[i,t] = 0;
+                    solzp[i,t] = getvalue(zp[i,t]);
                 end
             end
         end
@@ -148,7 +151,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
             end
         end
 
-        sol = solData(solSp,solSq,solw,solu,solLp,solLq);
+        sol = solData(solSp,solSq,solw,solu,solLp,solLq,solzp);
         return sol,mpObj;
     else
         return mp;
@@ -311,12 +314,14 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
                         solw[i,t] = getvalue(w[i,t]);
                     else
                         solw[i,t] = 0;
+                        solzp[i,t] = getvalue(zp[i,t]);
                     end
                 end
             else
                 solu[i] = 0;
                 for t in td:T
                     solw[i,t] = 0;
+                    solzp[i,t] = getvalue(zp[i,t]);
                 end
             end
         end
@@ -335,7 +340,7 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
             end
         end
 
-        sol = solData(solSp,solSq,solw,solu,solLp,solLq);
+        sol = solData(solSp,solSq,solw,solu,solLp,solLq,solzp);
         return sol,mpObj;
     else
         return mp;
