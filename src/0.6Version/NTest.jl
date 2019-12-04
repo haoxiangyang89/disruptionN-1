@@ -21,11 +21,11 @@ for ci in 1:length(caseList)
 
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 30, false,false, 2, 2);
 
-    for N in NList
-        startPGT = time();
-        cutDictPG = preGen(τ, T, Δt, NN, iterMax);
-        preGenT = time() - startPGT;
+    startPGT = time();
+    cutDictPG = preGen(τ, T, Δt, NN, iterMax);
+    preGenT = time() - startPGT;
 
+    for N in NList
         startT = time();
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20), cutDictPG);
         elapsedT = time() - startT;

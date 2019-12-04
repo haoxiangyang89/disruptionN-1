@@ -386,7 +386,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
             end
             for i in fData.genIDList
                 if fData.cp[i].n == 3
-                    @constraint(dp, μ3[i,t,1]^2 + μ3[i,t,1]^2 <= ν3[i,t]^2);
+                    @constraint(dp, μ3[i,t,1]^2 + μ3[i,t,2]^2 <= ν3[i,t]^2);
                 end
             end
         end

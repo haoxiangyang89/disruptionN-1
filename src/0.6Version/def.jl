@@ -88,6 +88,7 @@ struct solData
     u :: Dict{Any,Any}
     lp :: Dict{Any,Any}
     lq :: Dict{Any,Any}
+    zp :: Dict{Any,Any}
 end
 
 struct demandData

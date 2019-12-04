@@ -55,7 +55,7 @@ for Nind in 1:length(NList)
         if ci != 1
             lbDict[N] = [lbDict[N] dataN[ci]["NOut"][N][1][1:NNo]];
             tdTemp = zeros(NNo+1);
-            CT = 0;
+            CT = dataN[ci]["NOut"][N][7];
             for j in 1:NNo
                 CT += dataN[ci]["NOut"][N][5][j];
                 tdTemp[j+1] = CT;
@@ -64,7 +64,7 @@ for Nind in 1:length(NList)
         else
             lbDict[N] = dataN[ci]["NOut"][N][1][1:NNo];
             tdTemp = zeros(NNo+1);
-            CT = 0;
+            CT = dataN[ci]["NOut"][N][7];
             for j in 1:NNo
                 CT += dataN[ci]["NOut"][N][5][j];
                 tdTemp[j+1] = CT;

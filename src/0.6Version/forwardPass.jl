@@ -139,6 +139,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         solu = Dict();
         solLp = Dict();
         solLq = Dict();
+        solzp = Dict();
         for i in fData.genIDList
             for t in 1:T
                 if abs(getvalue(sp[i,t])) > 1e-5
@@ -162,11 +163,13 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
                     else
                         solw[i,t] = 0;
                     end
+                    solzp[i,t] = getvalue(zp[i,t]);
                 end
             else
                 solu[i] = 0;
                 for t in 1:T
                     solw[i,t] = 0;
+                    solzp[i,t] = 0;
                 end
             end
         end
@@ -185,7 +188,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
             end
         end
 
-        sol = solData(solSp,solSq,solw,solu,solLp,solLq);
+        sol = solData(solSp,solSq,solw,solu,solLp,solLq,solzp);
         return sol,mpObj;
     else
         return mp;
@@ -363,6 +366,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         solu = Dict();
         solLp = Dict();
         solLq = Dict();
+        solzp = Dict();
         for i in fData.genIDList
             for t in td:T
                 if abs(getvalue(sp[i,t])) > 1e-5
@@ -386,11 +390,13 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
                     else
                         solw[i,t] = 0;
                     end
+                    solzp[i,t] = getvalue(zp[i,t]);
                 end
             else
                 solu[i] = 0;
                 for t in td:T
                     solw[i,t] = 0;
+                    solzp[i,t] = 0;
                 end
             end
         end
@@ -409,7 +415,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
             end
         end
 
-        sol = solData(solSp,solSq,solw,solu,solLp,solLq);
+        sol = solData(solSp,solSq,solw,solu,solLp,solLq,solzp);
         return sol,mpObj;
     else
         return mp;
@@ -434,7 +440,7 @@ function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
     costn = 0;
     solHist = [];
     currentLB = 0;
-    currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
+    currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     iter = 1;
     while disT <= T
         # solve the current stage problem, state variables are passed
