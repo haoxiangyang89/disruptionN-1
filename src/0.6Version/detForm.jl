@@ -126,13 +126,21 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
                     else
                         solw[i,t] = 0;
                     end
-                    solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(getvalue(zp[i,t])) > 1e-6
+                        solzp[i,t] = getvalue(zp[i,t]);
+                    else
+                        solzp[i,t] = 0;
+                    end
                 end
             else
                 solu[i] = 0;
                 for t in 1:T
                     solw[i,t] = 0;
-                    solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(getvalue(zp[i,t])) > 1e-6
+                        solzp[i,t] = getvalue(zp[i,t]);
+                    else
+                        solzp[i,t] = 0;
+                    end
                 end
             end
         end
@@ -316,13 +324,21 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
                     else
                         solw[i,t] = 0;
                     end
-                    solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(getvalue(zp[i,t])) > 1e-6
+                        solzp[i,t] = getvalue(zp[i,t]);
+                    else
+                        solzp[i,t] = 0;
+                    end
                 end
             else
                 solu[i] = 0;
                 for t in td:T
                     solw[i,t] = 0;
-                    solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(getvalue(zp[i,t])) > 1e-6
+                        solzp[i,t] = getvalue(zp[i,t]);
+                    else
+                        solzp[i,t] = 0;
+                    end
                 end
             end
         end
