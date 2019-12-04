@@ -366,7 +366,7 @@ function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathList = [])
     costn = 0;
     iter = 1;
     solHist = [];
-    currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
+    currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
