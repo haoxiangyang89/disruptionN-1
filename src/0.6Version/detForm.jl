@@ -315,8 +315,8 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
                         solw[i,t] = getvalue(w[i,t]);
                     else
                         solw[i,t] = 0;
-                        solzp[i,t] = getvalue(zp[i,t]);
                     end
+                    solzp[i,t] = getvalue(zp[i,t]);
                 end
             else
                 solu[i] = 0;
