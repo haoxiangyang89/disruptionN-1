@@ -297,7 +297,7 @@ function parsecST(cST,genIDList,baseMVA)
             nC = parse(Float64,cdata[4]);
             paramC = [];
             for i in 1:Int64(nC)
-                push!(paramC,parse(Float64,cdata[i+4]));
+                push!(paramC,parse(Float64,cdata[i+4])*(baseMVA^(Int64(nC) - i)));
             end
 
             citem = costDataType(typeC,startC,endC,nC,paramC);
@@ -318,7 +318,7 @@ function parsecST(cST,genIDList,baseMVA)
             nC = parse(Float64,cdata[4]);
             paramC = [];
             for i in 1:Int64(nC)
-                push!(paramC,parse(Float64,cdata[i+4]));
+                push!(paramC,parse(Float64,cdata[i+4])*(baseMVA^(Int64(nC) - i)));
             end
 
             citem = costDataType(typeC,startC,endC,nC,paramC);
@@ -713,7 +713,7 @@ end
 
 function readInData(i,caseList,T,λD = 0)
     fileAdd = "case$(caseList[i])_ieee.m";
-    global fData = readStatic(fileAdd,10000);
+    global fData = readStatic(fileAdd,1e6);
     disAdd = "testProbRead_$(caseList[i]).csv"
     global pDistr = readDisruption(disAdd,"csv");
     pAdd = "testDataP_$(caseList[i]).csv";
