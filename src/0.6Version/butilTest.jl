@@ -105,11 +105,12 @@ for ci in 1:length(caseList)
 
                     yS = (wSDDP[i][b][t] - wSDDP[i][b][t - 1])/Δt;
                     zS = zSDDP[i][b][t];
-                    push!(cdCoeff,zS/yS);
                     if zS > 0
                         dischargeS += zS;
+                        push!(cdCoeff,zS/yS);
                     else
                         chargeS += zS;
+                        push!(cdCoeff,yS/zS);
                     end
                 end
                 println(b," ",[meanwD,chargeD,dischargeD],[meanwS,chargeS,dischargeS,cdCoeff]);
