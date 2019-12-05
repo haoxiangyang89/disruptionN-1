@@ -381,3 +381,14 @@ function cutUpdate(td,Ω,paraSet,cutCurrentData)
         end
     end
 end
+
+function yzCal(y,bData,loc)
+    noPiece = length(bData.ηα[loc]);
+    fv = Inf;
+    for n in 1:noPiece
+        if y*bData.ηα[loc][n]+bData.ηβ[loc][n] < fv
+            fv = y*bData.ηα[loc][n]+bData.ηβ[loc][n];
+        end
+    end
+    return fv;
+end
