@@ -24,6 +24,7 @@ for ci in 1:length(caseList)
     startPGT = time();
     cutDictPG = preGen(τ, T, Δt, NN, iterMax);
     preGenT = time() - startPGT;
+    cutDictPGOri = deepcopy(cutDictPG);
 
     for N in NList
         startT = time();
@@ -32,5 +33,6 @@ for ci in 1:length(caseList)
         dataList[N] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
 
         save("NResults_$(ci).jld","NOut",dataList);
+        cutDictPG = deepcopy(cutDictPGOri);
     end
 end
