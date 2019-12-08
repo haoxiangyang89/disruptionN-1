@@ -7,7 +7,7 @@ addprocs(30);
 NList = [1,5,10,20,30];
 dataList = Dict();
 iterMax = 20;
-NN = 20;
+NN = 5;
 
 caseList = [13,33,123];
 T = 96;
@@ -28,7 +28,7 @@ for ci in 1:length(caseList)
 
     for N in NList
         startT = time();
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20), cutDictPG);
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG);
         elapsedT = time() - startT;
         dataList[N] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
 

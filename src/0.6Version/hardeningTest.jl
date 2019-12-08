@@ -21,7 +21,7 @@ for ci in 1:length(caseList)
         cutDictPG = preGen(τ, T, Δt, N, iterMax, false, Dict(), [ω]);
 
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
-            max(Int64(round(200/N)),20), max(Int64(round(200/N)),20), cutDictPG, false, 0, [ω]);
+            max(Int64(round(300/N)),20), max(Int64(round(300/N)),20), cutDictPG, false, 0, [ω]);
         dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
     end
 

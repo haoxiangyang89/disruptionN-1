@@ -7,7 +7,7 @@ N = 5;
 dataList = Dict();
 
 caseList = [13,33,123];
-T = 24;
+T = 96;
 τ = Int64(1/6*T);
 Δt = 0.25;
 iterMax = 20;
@@ -20,7 +20,7 @@ for ci in 1:length(caseList)
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 30, false,false, 2, 2);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20));
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20));
     elapsedT = time() - startT;
     dataList["dOnly"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 
@@ -31,7 +31,7 @@ for ci in 1:length(caseList)
     preGenT = time() - startPGT;
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(200/N)),20), max(Int64(round(200/N)),20),cutDictPG);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
     elapsedT = time() - startT;
     dataList["preGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
 
