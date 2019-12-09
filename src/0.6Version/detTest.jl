@@ -8,10 +8,10 @@ NN = 1000;
 Δt = 0.25;
 N = 5;
 iterMax = 20;
+pathListDRaw = load("pathHist_1000.jld");
 
 for ci in 1:length(caseList)
     TList = [24,36,48,72,96];
-    pathListDRaw = load("pathHist_1000.jld");
     pathDictA = pathListDRaw["pathDict"][ci];
     detOut = Dict();
     stochOut = Dict();

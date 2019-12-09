@@ -11,8 +11,10 @@ T = 96;
 τ = Int64(1/6*T);
 Δt = 0.25;
 iterMax = 20;
+pathTrain = load("pathHist_600.jld");
 
 for ci in 1:length(caseList)
+    pathDict = pathTrain["pathDict"][ci][T];
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T);
     end
@@ -20,7 +22,8 @@ for ci in 1:length(caseList)
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 30, false,false, 2, 2);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20));
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), Dict(),
+        false, 200, [], 0, pathDict);
     elapsedT = time() - startT;
     dataList["dOnly"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 
@@ -31,7 +34,8 @@ for ci in 1:length(caseList)
     preGenT = time() - startPGT;
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG,
+        false, 200, [], 0, pathDict);
     elapsedT = time() - startT;
     dataList["preGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
 

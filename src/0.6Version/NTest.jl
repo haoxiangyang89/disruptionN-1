@@ -13,8 +13,10 @@ caseList = [13,33,123];
 T = 96;
 τ = Int64(1/6*T);
 Δt = 0.25;
+pathTrain = load("pathHist_600.jld");
 
 for ci in 1:length(caseList)
+    pathDict = pathTrain["pathDict"][ci][T];
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T);
     end
@@ -28,7 +30,8 @@ for ci in 1:length(caseList)
 
     for N in NList
         startT = time();
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG);
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG,
+            false, 200, [], 0, pathDict);
         elapsedT = time() - startT;
         dataList[N] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
 

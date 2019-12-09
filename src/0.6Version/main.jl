@@ -1,7 +1,7 @@
 # main program structure construction
 
 function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
-    iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [], simuRule = 0)
+    iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [], simuRule = 0, simuSample = Dict())
     # readin data and execute the SDDP algorithm
 
     UB = 9999999999;
@@ -17,13 +17,23 @@ function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
     for j in procs()
         remotecall_fetch(cutIni,j,cutDict);
     end
+    sampleCounter = 0;
 
     # while the termination criteria is not met
     while (keepIter)&(iterNo <= iterMax)
         iterNo += 1;
         iterStart = time();
         if simuRule == 0
-            trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, Dict(), hardened);
+            if simuSample == Dict()
+                trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, Dict(), hardened);
+            else
+                pathIter = Dict();
+                for sNo in 1:N
+                    pathIter[sNo] = simuSample[sampleCounter+sNo];
+                end
+                trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, pathIter, hardened);
+                sampleCounter += N;
+            end
         else
             trialPaths,currentLB,currentUBDict = exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt, hardened);
         end
