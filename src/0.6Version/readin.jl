@@ -638,7 +638,7 @@ function readDisruption(fileName,fileType)
     end
 end
 
-function readBattery(fileName,fileType)
+function readBattery(fileName,fileType,baseMVA = 100)
     # read in the battery information: charging/discharging factor, capacity
     if fileType == "csv"
         # csv file format:
@@ -664,9 +664,9 @@ function readBattery(fileName,fileType)
             loc = Int64(dataRaw[i,2]);
             LocDict[ID] = loc;
             capacity[ID] = dataRaw[i,3];
-            cost[ID] = dataRaw[i,4];
-            bInv[ID] = dataRaw[i,5];
-            uCap[ID] = dataRaw[i,6];
+            cost[ID] = dataRaw[i,4]*baseMVA;
+            bInv[ID] = dataRaw[i,5]/baseMVA;
+            uCap[ID] = dataRaw[i,6]/baseMVA;
             ηparams = [j for j in dataRaw[i,7:nb] if j != ""];
             ηα[ID] = [];
             ηβ[ID] = [];
@@ -720,7 +720,7 @@ function readInData(i,caseList,T,λD = 0)
     qAdd = "testDataQ_$(caseList[i]).csv";
     global dData = readDemand(pAdd,qAdd,"csv");
     bAdd = "testDataB_$(caseList[i]).csv";
-    global bData = readBattery(bAdd,"csv");
+    global bData = readBattery(bAdd,"csv",fData.baseMVA);
 
     if λD == 0
         global pDistr = modifyT(pDistr,4/T,T);

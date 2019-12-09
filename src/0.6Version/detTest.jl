@@ -9,12 +9,13 @@ NN = 1000;
 N = 5;
 iterMax = 20;
 pathListDRaw = load("pathHist_1000.jld");
+TList = [24,36,48,72,96];
 
 for ci in 1:length(caseList)
-    TList = [24,36,48,72,96];
     pathDictA = pathListDRaw["pathDict"][ci];
     detOut = Dict();
     stochOut = Dict();
+    detCostDict = Dict();
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
@@ -44,7 +45,10 @@ for ci in 1:length(caseList)
         println(round(meanSDDP,2)," ",round(meanSDDP - 1.96*sigmaSDDP,2)," ",round(meanSDDP + 1.96*sigmaSDDP,2));
         stochOut[T] = [LBSDDP, costSDDP, listSDDP, meanSDDP, sigmaSDDP];
 
-        save("detResults_$(ci).jld","detOut",detOut,"stochOut",stochOut);
+        detSol,detObj = detBuild(Δt, T, fData, bData, dData);
+        detCostDict[T] = detObj;
+
+        save("detResults_$(ci).jld", "detOut", detOut, "stochOut", stochOut, "nomOut", detCostDict);
     end
 end
 
