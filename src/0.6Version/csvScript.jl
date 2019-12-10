@@ -5,11 +5,11 @@ caseList = [13,33,123];
 # output the csv file for GenAll and dOnly
 for ci in 1:length(caseList)
     datad = load("dOnlyResults_$(ci).jld");
-    lbOutList = [datad["data"]["dOnly"][1][1:40] datad["data"]["allGen"][1][1:40]];
+    lbOutList = [datad["data"]["dOnly"][1][1:60] datad["data"]["allGen"][1][1:60]];
     timeOutList = zeros(41,2);
     cT1 = 0;
     cT2 = 0;
-    for j in 1:40
+    for j in 1:60
         cT1 += datad["data"]["dOnly"][5][j];
         cT2 += datad["data"]["allGen"][5][j];
         timeOutList[j+1,1] = cT1;
@@ -22,12 +22,12 @@ end
 # output the csv file for preGen
 for ci in 1:length(caseList)
     datapg = load("pgResults_$(ci).jld");
-    lbOutList = [datapg["data"]["dOnly"][1][1:40] datapg["data"]["preGen"][1][1:40]];
+    lbOutList = [datapg["data"]["dOnly"][1][1:60] datapg["data"]["preGen"][1][1:60]];
     timeOutList = zeros(41,2);
     cT1 = 0;
     cT2 = datapg["data"]["preGen"][5][7];
     timeOutList[1,2] = cT2;
-    for j in 1:40
+    for j in 1:60
         cT1 += datapg["data"]["dOnly"][5][j];
         cT2 += datapg["data"]["preGen"][5][j];
         timeOutList[j+1,1] = cT1;
@@ -39,7 +39,7 @@ end
 
 # output the csv file for NTest
 NList = [1,5,10,20,30];
-NNoList = [200,40,20,20,20];
+NNoList = [300,60,30,20,20];
 lbDict = Dict();
 timeDict = Dict();
 dataN = Dict();

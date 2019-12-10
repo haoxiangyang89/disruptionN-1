@@ -34,29 +34,29 @@ outString = "./Desktop/Git/disruptionN-1/test/csvOut/GenAll.png"
 png(file = outString, width= 13, height = 8, units = 'in',res = 300);
 par(mfrow=c(2,3));
 par(mar = c(5,5,2.5,2.5));
-plot(1:40, dOnlylb1$V1, type = "l", ylim=range(c(0,25)), xlab = "Iteration", ylab = "LB", main = "Case 13",
+plot(1:60, dOnlylb1$V1, type = "l", ylim=range(c(0,1500)), xlab = "Iteration", ylab = "LB", main = "Case 13",
       col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(1:40, dOnlylb1$V2, col = "#E41A1C", lwd = 3);
+lines(1:60, dOnlylb1$V2, col = "#E41A1C", lwd = 3);
 legend("bottomright",c("DOnly","GenAll"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(1:40, dOnlylb2$V1, type = "l", ylim=range(c(0,25)), xlab = "Iteration", ylab = "LB", main = "Case 33",
+plot(1:60, dOnlylb2$V1, type = "l", ylim=range(c(0,2500)), xlab = "Iteration", ylab = "LB", main = "Case 33",
       col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(1:40, dOnlylb2$V2, col = "#E41A1C", lwd = 3);
+lines(1:60, dOnlylb2$V2, col = "#E41A1C", lwd = 3);
 legend("bottomright",c("DOnly","GenAll"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(1:40, dOnlylb3$V1, type = "l", ylim=range(c(0,15)), xlab = "Iteration", ylab = "LB", main = "Case 123",
+plot(1:60, dOnlylb3$V1, type = "l", ylim=range(c(0,1000)), xlab = "Iteration", ylab = "LB", main = "Case 123",
       col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(1:40, dOnlylb3$V2, col = "#E41A1C", lwd = 3);
+lines(1:60, dOnlylb3$V2, col = "#E41A1C", lwd = 3);
 legend("bottomright",c("DOnly","GenAll"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
 
 par(mar = c(5,5,1.5,2.5));
-plot(dOnlyt1$V1, type = "l", ylim=range(c(0,3100)), xlab = "Iteration", ylab = "Time (sec.)", 
+plot(dOnlyt1$V1, type = "l", ylim=range(c(0,6000)), xlab = "Iteration", ylab = "Time (sec.)", 
       col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
 lines(dOnlyt1$V2, col = "#E41A1C", lwd = 3);
 legend("topleft",c("DOnly","GenAll"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt2$V1, type = "l", ylim=range(c(0,3200)), xlab = "Iteration", ylab = "Time (sec.)", 
+plot(dOnlyt2$V1, type = "l", ylim=range(c(0,6000)), xlab = "Iteration", ylab = "Time (sec.)", 
       col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
 lines(dOnlyt2$V2, col = "#E41A1C", lwd = 3);
 legend("topleft",c("DOnly","GenAll"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt3$V1, type = "l", ylim=range(c(0,7000)), xlab = "Iteration", ylab = "Time (sec.)", 
+plot(dOnlyt3$V1, type = "l", ylim=range(c(0,10000)), xlab = "Iteration", ylab = "Time (sec.)", 
       col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
 lines(dOnlyt3$V2, col = "#E41A1C", lwd = 3);
 legend("topleft",c("DOnly","GenAll"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
@@ -75,31 +75,31 @@ outString = "./Desktop/Git/disruptionN-1/test/csvOut/pgFig.png"
 png(file = outString, width= 13, height = 8, units = 'in',res = 300);
 par(mfrow=c(2,3));
 par(mar = c(5,5,2.5,2.5));
-plot(1:40, pglb1$V1, type = "l", ylim=range(c(0,25)), xlab = "Iteration", ylab = "LB", main = "Case 13",
+plot(1:60, pglb1$V1[1:60], type = "l", ylim=range(c(0,7000)), xlab = "Iteration", ylab = "LB", main = "Case 13",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(1:40, pglb1$V2, col = "#E41A1C", lwd = 3);
+lines(1:60, pglb1$V2[1:60], col = "#E41A1C", lwd = 3);
 legend("bottomright",c("No pre-generated cuts","Pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(1:40, pglb2$V1, type = "l", ylim=range(c(0,25)), xlab = "Iteration", ylab = "LB", main = "Case 33",
+plot(1:60, pglb2$V1[1:60], type = "l", ylim=range(c(0,11000)), xlab = "Iteration", ylab = "LB", main = "Case 33",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(1:40, pglb2$V2, col = "#E41A1C", lwd = 3);
+lines(1:60, pglb2$V2[1:60], col = "#E41A1C", lwd = 3);
 legend("bottomright",c("No pre-generated cuts","Pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(1:40, pglb3$V1, type = "l", ylim=range(c(0,15)), xlab = "Iteration", ylab = "LB", main = "Case 123",
+plot(1:60, pglb3$V1[1:60], type = "l", ylim=range(c(0,15000)), xlab = "Iteration", ylab = "LB", main = "Case 123",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(1:40, pglb3$V2, col = "#E41A1C", lwd = 3);
+lines(1:60, pglb3$V2[1:60], col = "#E41A1C", lwd = 3);
 legend("bottomright",c("No pre-generated cuts","Pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
 
 par(mar = c(5,5,1.5,2.5));
-plot(pgt1$V1, type = "l", ylim=range(c(0,500)), xlab = "Iteration", ylab = "Time (sec.)", 
+plot(pgt1$V1[1:60], type = "l", ylim=range(c(0,1000)), xlab = "Iteration", ylab = "Time (sec.)", 
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(pgt1$V2, col = "#E41A1C", lwd = 3);
+lines(pgt1$V2[1:60], col = "#E41A1C", lwd = 3);
 legend("topleft",c("No pre-generated cuts","Pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(pgt2$V1, type = "l", ylim=range(c(0,700)), xlab = "Iteration", ylab = "Time (sec.)", 
+plot(pgt2$V1[1:60], type = "l", ylim=range(c(0,1200)), xlab = "Iteration", ylab = "Time (sec.)", 
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(pgt2$V2, col = "#E41A1C", lwd = 3);
+lines(pgt2$V2[1:60], col = "#E41A1C", lwd = 3);
 legend("topleft",c("No pre-generated cuts","Pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(pgt3$V1, type = "l", ylim=range(c(0,2000)), xlab = "Iteration", ylab = "Time (sec.)", 
+plot(pgt3$V1[1:60], type = "l", ylim=range(c(0,3000)), xlab = "Iteration", ylab = "Time (sec.)", 
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5);
-lines(pgt3$V2, col = "#E41A1C", lwd = 3);
+lines(pgt3$V2[1:60], col = "#E41A1C", lwd = 3);
 legend("topleft",c("No pre-generated cuts","Pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
 dev.off();
 
