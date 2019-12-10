@@ -6,7 +6,7 @@ caseList = [13,33,123];
 for ci in 1:length(caseList)
     datad = load("dOnlyResults_$(ci).jld");
     lbOutList = [datad["data"]["dOnly"][1][1:60] datad["data"]["allGen"][1][1:60]];
-    timeOutList = zeros(41,2);
+    timeOutList = zeros(61,2);
     cT1 = 0;
     cT2 = 0;
     for j in 1:60
@@ -23,7 +23,7 @@ end
 for ci in 1:length(caseList)
     datapg = load("pgResults_$(ci).jld");
     lbOutList = [datapg["data"]["dOnly"][1][1:60] datapg["data"]["preGen"][1][1:60]];
-    timeOutList = zeros(41,2);
+    timeOutList = zeros(61,2);
     cT1 = 0;
     cT2 = datapg["data"]["preGen"][5][7];
     timeOutList[1,2] = cT2;
