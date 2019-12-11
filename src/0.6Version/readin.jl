@@ -719,9 +719,9 @@ function readDemand(fileNameP, fileNameQ, fileType)
     end
 end
 
-function readInData(i,caseList,T,λD = 0)
+function readInData(i,caseList,T,cz = 1e6,λD = 0)
     fileAdd = "case$(caseList[i])_ieee.m";
-    global fData = readStatic(fileAdd,1e6);
+    global fData = readStatic(fileAdd,cz);
     disAdd = "testProbRead_$(caseList[i]).csv"
     global pDistr = readDisruption(disAdd,"csv");
     pAdd = "testDataP_$(caseList[i]).csv";
