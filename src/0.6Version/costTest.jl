@@ -21,7 +21,7 @@ for cmulti in cList
     # adjust the cost
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T);
-        remotecall_fetch(changeCost,j,fData,cmulti);
+        remotecall_fetch(changeCost,j,fData,bData,cmulti);
     end
 
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 30, false,false, 2, 2);

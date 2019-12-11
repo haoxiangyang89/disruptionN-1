@@ -394,7 +394,7 @@ function yzCal(y,bData,loc)
 end
 
 # change the cost of generation by a multiplier
-@everywhere function changeCost(fDataLocal, bDataLocal, cmulti)
+function changeCost(fDataLocal, bDataLocal, cmulti)
     for i in fDataLocal.genIDList
         for nIter in 1:fDataLocal.cp[i].n
             fDataLocal.cp[i].params[nIter] = fDataLocal.cp[i].params[nIter]*cmulti^(fDataLocal.cp[i].n - nIter);
@@ -410,7 +410,7 @@ end
 end
 
 # break a component
-@everywhere function breakComponent(fDataLocal, bItem, bType)
+function breakComponent(fDataLocal, bItem, bType)
     if bType == "g"
         # generators
         deleteat!(fDataLocal.genIDList,findfirst(fDataLocal.genIDList,bItem));

@@ -13,14 +13,21 @@ T = 24;
 for ci in 1:length(caseList)
     dataList = Dict();
     τ = Int64(1/6*T);
-    for j in procs()
-        remotecall_fetch(readInData,j,ci,caseList,T);
-    end
 
     for ω in keys(pDistr.ωDistrn)
+        for j in procs()
+            remotecall_fetch(readInData,j,ci,caseList,T);
+            if length(ω) == 1
+                remotecall_fetch(breakComponent,fData, ω, "g");
+            else
+                remotecall_fetch(breakComponent,fData, ω, "l");
+            end
+        end
+
         # break the component and then calculate the deterministic cost
-        dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
+        detSol,detObj = detBuild(Δt, T, fData, bData, dData);
+        dataList[ω] = [detSol,detOb];
     end
 
-    save("hardResults_$(ci).jld","data",dataList);
+    save("breakResults_$(ci).jld","data",dataList);
 end
