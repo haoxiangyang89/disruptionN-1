@@ -20,7 +20,7 @@ pathDict = pathTrain["pathDict"][ci][T];
 for cmulti in cList
     # adjust the cost
     for j in procs()
-        remotecall_fetch(readInData,j,ci,caseList,T);
+        remotecall_fetch(readInData,j,ci,caseList,T,1e6);
         remotecall_fetch(changeCost,j,fData,bData,cmulti);
     end
 
