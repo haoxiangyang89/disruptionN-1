@@ -1,6 +1,6 @@
 # define the type of data
 
-struct fixedData
+mutable struct fixedData
     # static network data
     baseMVA :: Float64
     bType :: Dict{Int64,Any}
@@ -68,7 +68,7 @@ struct probDistrn
     ωDistrn :: Dict{Any,Any}
 end
 
-struct batteryData
+mutable struct batteryData
     # battery information: charging/discharging factor, capacity
     IDList :: Array{Any,1}
     Loc :: Dict{Int64,Any}
