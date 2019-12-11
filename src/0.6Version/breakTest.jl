@@ -1,0 +1,26 @@
+# test breaking a component and examine the deterministic costs
+addprocs(30);
+@everywhere include("loadMod.jl");
+@everywhere const GUROBI_ENV = Gurobi.Env();
+
+N = 5;
+
+caseList = [13,33,123];
+Δt = 0.25;
+iterMax = 20;
+T = 24;
+
+for ci in 1:length(caseList)
+    dataList = Dict();
+    τ = Int64(1/6*T);
+    for j in procs()
+        remotecall_fetch(readInData,j,ci,caseList,T);
+    end
+
+    for ω in keys(pDistr.ωDistrn)
+        # break the component and then calculate the deterministic cost
+        dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
+    end
+
+    save("hardResults_$(ci).jld","data",dataList);
+end

@@ -392,3 +392,36 @@ function yzCal(y,bData,loc)
     end
     return fv;
 end
+
+# change the cost of generation by a multiplier
+@everywhere function changeCost(fDataLocal, bDataLocal, cmulti)
+    for i in fDataLocal.genIDList
+        for nIter in 1:fDataLocal.cp[i].n
+            fDataLocal.cp[i].params[nIter] = fDataLocal.cp[i].params[nIter]*cmulti^(fDataLocal.cp[i].n - nIter);
+        end
+    end
+
+    for i in bDataLocal.IDList
+        bDataLocal.cost[i] = bDataLocal.cost[i]*cmulti;
+    end
+
+    global fData = fDataLocal;
+    global bData = bDataLocal;
+end
+
+# break a component
+@everywhere function breakComponent(fDataLocal, bItem, bType)
+    if bType == "g"
+        # generators
+        deleteat!(fDataLocal.genIDList,findfirst(fDataLocal.genIDList,bItem));
+    elseif bType == "l"
+        # lines
+        lineIDList = deepcopy(fDataLocal.brList);
+        for k in lineIDList
+            if ((k[1],k[2]) == bItem) | ((k[2],k[1]) == bItem)
+                deleteat!(fDataLocal.brList,findfirst(fDataLocal.brList,k));
+            end
+        end
+    end
+    global fData = fDataLocal;
+end
