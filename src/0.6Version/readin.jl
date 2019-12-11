@@ -555,7 +555,7 @@ function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,P
     end
     fData = fixedData(baseMVA,bType,IDList,genIDList,brList,brRev,
                         L,LR,Vmax,Vmin,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,
-                        Pd,Qd,Pg,Qg,RU,RD,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
+                        Pd,Qd,Pg,Qg,RU/baseMVA,RD/baseMVA,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
                         busInd,branchDict1,branchDict2,connectPair,connectDict,kpDict);
     return fData
 end
