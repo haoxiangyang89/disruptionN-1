@@ -553,9 +553,17 @@ function constFixed(baseMVA,bType,IDList,genIDList,brList,brRev,Vmax,Vmin,L,LR,P
             kpDict[(k[1],k[2])] = [k];
         end
     end
+    RUadj = Dict();
+    RDadj = Dict();
+    for iKey in keys(RU)
+        RUadj[iKey] = RU[iKey]/baseMVA;
+    end
+    for iKey in keys(RD)
+        RDadj[iKey] = RD[iKey]/baseMVA;
+    end
     fData = fixedData(baseMVA,bType,IDList,genIDList,brList,brRev,
                         L,LR,Vmax,Vmin,Pmax,Pmin,Qmax,Qmin,gs,bs,Vmag,Vang,
-                        Pd,Qd,Pg,Qg,RU/baseMVA,RD/baseMVA,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
+                        Pd,Qd,Pg,Qg,RUadj,RDadj,g,b,bc,angmax,angmin,rateA,τ1,τ2,σ,cp,cq,cz,
                         busInd,branchDict1,branchDict2,connectPair,connectDict,kpDict);
     return fData
 end
