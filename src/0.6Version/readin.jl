@@ -663,7 +663,7 @@ function readBattery(fileName,fileType,baseMVA = 100)
             push!(IDList,ID);
             loc = Int64(dataRaw[i,2]);
             LocDict[ID] = loc;
-            capacity[ID] = dataRaw[i,3];
+            capacity[ID] = dataRaw[i,3]/baseMVA;
             cost[ID] = dataRaw[i,4]*baseMVA;
             bInv[ID] = dataRaw[i,5]/baseMVA;
             uCap[ID] = dataRaw[i,6]/baseMVA;
