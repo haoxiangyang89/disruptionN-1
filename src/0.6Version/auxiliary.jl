@@ -400,6 +400,7 @@ function changeCost(fDataLocal, bDataLocal, cmulti)
             fDataLocal.cp[i].params[nIter] = fDataLocal.cp[i].params[nIter]*cmulti^(fDataLocal.cp[i].n - nIter);
         end
     end
+    fDataLocal.cz = fDataLocal.cz*cmulti;
 
     for i in bDataLocal.IDList
         bDataLocal.cost[i] = bDataLocal.cost[i]*cmulti;
