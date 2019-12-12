@@ -1,5 +1,5 @@
 # test breaking a component and examine the deterministic costs
-addprocs(30);
+addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
