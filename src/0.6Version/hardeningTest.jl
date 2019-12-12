@@ -20,8 +20,9 @@ for ci in 1:length(caseList)
     for ω in keys(pDistr.ωDistrn)
         cutDictPG = preGen(τ, T, Δt, N, iterMax, false, Dict(), [ω]);
 
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
-            max(Int64(round(300/N)),20), max(Int64(round(300/N)),20), cutDictPG, false, 0, [ω]);
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG, false, 0, [ω]);
+        # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        #     max(Int64(round(300/N)),20), max(Int64(round(300/N)),20), cutDictPG, false, 0, [ω]);
         dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
     end
 
