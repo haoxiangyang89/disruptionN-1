@@ -364,6 +364,10 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         statusMp = solve(mp);
+        if statusMp != :Optimal
+            mp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,Threads = 1);
+            statusMp = solve(mp);
+        end
         #optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
         mpObj = getobjectivevalue(mp);
         println("Disruption time $(td), scenario $(ωd), solving status $(statusMp)");

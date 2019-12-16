@@ -124,69 +124,69 @@ outString = "./Desktop/Git/disruptionN-1/test/csvOut/NFig.png"
 png(file = outString, width= 13, height = 8, units = 'in',res = 300);
 par(mfrow=c(2,3));
 par(mar = c(5,5,2.5,2.5));
-plot(1:100, Nlb1$V1, type = "l", ylim=range(c(0,40000)), xlab = "Iteration", ylab = "LB", main = "Case 13",
+plot(1:60, Nlb1$V1[1:60], type = "l", ylim=range(c(0,40000)), xlab = "Iteration", ylab = "LB", main = "Case 13",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, log="x");
 #lines(1:50, Nlb2$V1, col = "#000000", lwd = 3, log="x");
-lines(1:33, Nlb3$V1, col = "#E41A1C", lwd = 3, log="x");
+lines(1:20, Nlb3$V1[1:20], col = "#E41A1C", lwd = 3, log="x");
 #lines(1:25, Nlb4$V1, col = "#FF7F00", lwd = 3, log="x");
-lines(1:20, Nlb5$V1, col = "#4DAF4A", lwd = 3, log="x");
-lines(1:10, Nlb6$V1, col = "#984EA3", lwd = 3, log="x");
-lines(1:5, Nlb7$V1, col = "#3CAEA3", lwd = 3, log="x");
+lines(1:12, Nlb5$V1[1:12], col = "#4DAF4A", lwd = 3, log="x");
+lines(1:6, Nlb6$V1[1:6], col = "#984EA3", lwd = 3, log="x");
+lines(1:3, Nlb7$V1[1:3], col = "#3CAEA3", lwd = 3, log="x");
 #legend("bottomright",c("N = 1","N = 2","N = 3","N = 4","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00","#000000","#3CAEA3"),pch = 20,cex = 1.5);
 legend("bottomright",c("N = 1","N = 3","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 
-plot(1:100, Nlb1$V2, type = "l", ylim=range(c(0,38000)), xlab = "Iteration", ylab = "LB", main = "Case 33",
+plot(1:60, Nlb1$V2[1:60], type = "l", ylim=range(c(0,38000)), xlab = "Iteration", ylab = "LB", main = "Case 33",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, log="x");
 #lines(1:50, Nlb2$V2, col = "#000000", lwd = 3, log="x");
-lines(1:33, Nlb3$V2, col = "#E41A1C", lwd = 3, log="x");
+lines(1:20, Nlb3$V2[1:20], col = "#E41A1C", lwd = 3, log="x");
 #lines(1:25, Nlb4$V2, col = "#FF7F00", lwd = 3, log="x");
-lines(1:20, Nlb5$V2, col = "#4DAF4A", lwd = 3, log="x");
-lines(1:10, Nlb6$V2, col = "#984EA3", lwd = 3, log="x");
-lines(1:5, Nlb7$V2, col = "#3CAEA3", lwd = 3, log="x");
+lines(1:12, Nlb5$V2[1:12], col = "#4DAF4A", lwd = 3, log="x");
+lines(1:6, Nlb6$V2[1:6], col = "#984EA3", lwd = 3, log="x");
+lines(1:3, Nlb7$V2[1:3], col = "#3CAEA3", lwd = 3, log="x");
 #legend("bottomright",c("N = 1","N = 2","N = 3","N = 4","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00","#000000","#3CAEA3"),pch = 20,cex = 1.5);
 legend("bottomright",c("N = 1","N = 3","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 
-plot(1:100, Nlb1$V3, type = "l", ylim=range(c(0,50000)), xlab = "Iteration", ylab = "LB", main = "Case 123",
+plot(1:60, Nlb1$V3[1:60], type = "l", ylim=range(c(0,50000)), xlab = "Iteration", ylab = "LB", main = "Case 123",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, log="x");
 #lines(1:50, Nlb2$V3, col = "#000000", lwd = 3, log="x");
-lines(1:33, Nlb3$V3, col = "#E41A1C", lwd = 3, log="x");
+lines(1:20, Nlb3$V3[1:20], col = "#E41A1C", lwd = 3, log="x");
 #lines(1:25, Nlb4$V3, col = "#FF7F00", lwd = 3, log="x");
-lines(1:20, Nlb5$V3, col = "#4DAF4A", lwd = 3, log="x");
-lines(1:10, Nlb6$V3, col = "#984EA3", lwd = 3, log="x");
-lines(1:5, Nlb7$V3, col = "#3CAEA3", lwd = 3, log="x");
+lines(1:12, Nlb5$V3[1:12], col = "#4DAF4A", lwd = 3, log="x");
+lines(1:6, Nlb6$V3[1:6], col = "#984EA3", lwd = 3, log="x");
+lines(1:3, Nlb7$V3[1:3], col = "#3CAEA3", lwd = 3, log="x");
 #legend("bottomright",c("N = 1","N = 2","N = 3","N = 4","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00","#000000","#3CAEA3"),pch = 20,cex = 1.5);
 legend("bottomright",c("N = 1","N = 3","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 
-plot(0:100, Nt1$V1, type = "l", ylim=range(c(0,40000)), xlab = "Iteration", ylab = "Time (sec.)",
+plot(0:60, Nt1$V1[1:61], type = "l", ylim=range(c(0,20000)), xlab = "Iteration", ylab = "Time (sec.)",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, log="x");
 #lines(1:50, Nt2$V1, col = "#000000", lwd = 3, log="x");
-lines(0:33, Nt3$V1, col = "#E41A1C", lwd = 3, log="x");
+lines(0:20, Nt3$V1[1:21], col = "#E41A1C", lwd = 3, log="x");
 #lines(1:25, Nt4$V1, col = "#FF7F00", lwd = 3, log="x");
-lines(0:19, Nt5$V1[1:20], col = "#4DAF4A", lwd = 3, log="x");
-lines(0:9, Nt6$V1[1:10], col = "#984EA3", lwd = 3, log="x");
-lines(0:4, Nt7$V1[1:5], col = "#3CAEA3", lwd = 3, log="x");
+lines(0:12, Nt5$V1[1:13], col = "#4DAF4A", lwd = 3, log="x");
+lines(0:6, Nt6$V1[1:7], col = "#984EA3", lwd = 3, log="x");
+lines(0:3, Nt7$V1[1:4], col = "#3CAEA3", lwd = 3, log="x");
 #legend("topleft",c("N = 1","N = 2","N = 3","N = 4","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00","#000000","#3CAEA3"),pch = 20,cex = 1.5);
 legend("topleft",c("N = 1","N = 3","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 
-plot(0:100, Nt1$V2, type = "l", ylim=range(c(0,70000)), xlab = "Iteration", ylab = "Time (sec.)",
+plot(0:60, Nt1$V2[1:61], type = "l", ylim=range(c(0,35000)), xlab = "Iteration", ylab = "Time (sec.)",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, log="x");
 #lines(1:50, Nt2$V2, col = "#000000", lwd = 3, log="x");
-lines(0:33, Nt3$V2, col = "#E41A1C", lwd = 3, log="x");
+lines(0:20, Nt3$V2[1:21], col = "#E41A1C", lwd = 3, log="x");
 #lines(1:25, Nt4$V2, col = "#FF7F00", lwd = 3, log="x");
-lines(0:19, Nt5$V2[1:20], col = "#4DAF4A", lwd = 3, log="x");
-lines(0:9, Nt6$V2[1:10], col = "#984EA3", lwd = 3, log="x");
-lines(0:4, Nt7$V2[1:5], col = "#3CAEA3", lwd = 3, log="x");
+lines(0:12, Nt5$V2[1:13], col = "#4DAF4A", lwd = 3, log="x");
+lines(0:6, Nt6$V2[1:7], col = "#984EA3", lwd = 3, log="x");
+lines(0:3, Nt7$V2[1:4], col = "#3CAEA3", lwd = 3, log="x");
 #legend("topleft",c("N = 1","N = 2","N = 3","N = 4","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00","#000000","#3CAEA3"),pch = 20,cex = 1.5);
 legend("topleft",c("N = 1","N = 3","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00"),pch = 20,cex = 1.5);
 
-plot(0:100, Nt1$V3, type = "l", ylim=range(c(0,100000)), xlab = "Iteration", ylab = "Time (sec.)",
+plot(0:60, Nt1$V3[1:61], type = "l", ylim=range(c(0,60000)), xlab = "Iteration", ylab = "Time (sec.)",
      col = "#377EB8", lwd = 3, cex.main = 1.5, cex.lab = 1.5, cex.axis = 1.5, log="x");
 #lines(1:50, Nt2$V3, col = "#000000", lwd = 3, log="x");
-lines(0:33, Nt3$V3, col = "#E41A1C", lwd = 3, log="x");
+lines(0:20, Nt3$V3[1:21], col = "#E41A1C", lwd = 3, log="x");
 #lines(1:25, Nt4$V3, col = "#FF7F00", lwd = 3, log="x");
-lines(0:19, Nt5$V3[1:20], col = "#4DAF4A", lwd = 3, log="x");
-lines(0:9, Nt6$V3[1:10], col = "#984EA3", lwd = 3, log="x");
-lines(0:4, Nt7$V3[1:5], col = "#3CAEA3", lwd = 3, log="x");
+lines(0:12, Nt5$V3[1:13], col = "#4DAF4A", lwd = 3, log="x");
+lines(0:6, Nt6$V3[1:7], col = "#984EA3", lwd = 3, log="x");
+lines(0:3, Nt7$V3[1:4], col = "#3CAEA3", lwd = 3, log="x");
 #legend("topleft",c("N = 1","N = 2","N = 3","N = 4","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#FF7F00","#000000","#3CAEA3"),pch = 20,cex = 1.5);
 legend("topleft",c("N = 1","N = 3","N = 5","N = 10","N = 20"), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 dev.off()

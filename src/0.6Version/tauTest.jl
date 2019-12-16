@@ -23,7 +23,7 @@ for ci in 1:length(caseList)
     for τ in τList
         # train the stochastic strategy
         cutDictPG = preGen(τ, T, Δt, N, iterMax);
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG);
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, cutDictPG);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(300/N)),20), max(Int64(round(300/N)),20),cutDictPG);
 
         pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NN);

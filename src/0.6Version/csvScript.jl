@@ -86,3 +86,83 @@ for Nind in 1:length(NList)
     writedlm("./csvOut/N_lb_$(Nind).csv",lbDict[N],',');
     writedlm("./csvOut/N_time_$(Nind).csv",timeDict[N],',');
 end
+
+# print out the datadet
+TList = [24,36,48,72,96];
+for i in 1:3
+    datadet[i] = load("detResults_$(i)_AG.jld");
+end
+for i in 1:3
+    for T in TList
+        print(" & ",round(datadet[i]["detOut"][T][3],1));
+    end
+    println("\\\\");
+end
+for i in 1:3
+    for T in TList
+        print(" & ",round(datadet[i]["stochOut"][T][4],1));
+    end
+    println("\\\\");
+end
+for i in 1:3
+    for T in TList
+        print(" & ",round(datadet[i]["nomOut"][T]));
+    end
+    println("\\\\");
+end
+
+# print out the dataStab
+dataStab = Dict();
+for i in 1:20
+    dataStab[i] = load("stabilityResults_$(i)_AG.jld");
+end
+for i in 1:3
+    LBMean = [];
+    LBStdEv = [];
+    UBMean = [];
+    UBStdEv = [];
+    for T in [24,36,48,72]
+        LBList = zeros(20);
+        UBList = zeros(20);
+        for j in 1:20
+            LBList[j] = dataStab[j]["data"][i][T][j][1];
+            UBList[j] = dataStab[j]["data"][i][T][j][4];
+        end
+        push!(LBMean,mean(LBList));
+        push!(LBStdEv,std(LBList)*1.96);
+        push!(UBMean,mean(UBList));
+        push!(UBStdEv,std(UBList)*1.96);
+    end
+    for tint in 1:length(LBMean)
+        print(" & \$", round(LBMean[tint],1), " \\pm ", round(LBStdEv[tint],1), "\$");
+    end
+    println("\\\\");
+    for tint in 1:length(LBMean)
+        print(" & \$", round(UBMean[tint],1), " \\pm ", round(UBStdEv[tint],1), "\$");
+    end
+    println("\\\\");
+end
+
+# print out battery utilization results
+databutil = Dict();
+for i in 1:3
+    databutil[i] = load("butilResults_$(i)_AG.jld");
+end
+for i in 1:3
+    println("udet: ",sum(values(databutil[i]["detOut"][1])));
+    println("ustoch: ",sum(values(databutil[i]["stochOut"][1])));
+end
+
+
+# print out the hardening results
+datahard = Dict();
+for i in 1:3
+    datahard[i] = load("hardResults_$(i)_AG.jld");
+end
+for i in 1:3
+    println("Null ",datadet[i]["stochOut"][24][1]);
+    for ω in keys(datahard[i]["data"])
+        println(ω,"    ",datahard[i]["data"][ω][1][length(datahard[i]["data"][ω][1])]);
+    end
+    println("+++++++++++++++++++++++++++");
+end
