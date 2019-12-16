@@ -166,3 +166,17 @@ for i in 1:3
     end
     println("+++++++++++++++++++++++++++");
 end
+
+# print out the tau test results
+datatau = load("tauResults_AG.jld");
+τList = [2,4,6,8,10];
+for i in 1:3
+    for τ in τList
+        print(" & ", round(datatau["data"][i][τ][2],1));
+    end
+    println("\\\\");
+    for τ in τList
+        print(" & ", round(datatau["data"][i][τ][4],1));
+    end
+    println("\\\\");
+end
