@@ -1,5 +1,5 @@
 # test breaking a component and examine the deterministic costs
-addprocs(20);
+addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
@@ -18,9 +18,9 @@ for ci in 1:length(caseList)
         for j in procs()
             remotecall_fetch(readInData,j,ci,caseList,T);
             if length(ω) == 1
-                remotecall_fetch(breakComponent,fData, ω, "g");
+                remotecall_fetch(breakComponent, j, fData, ω, "g");
             else
-                remotecall_fetch(breakComponent,fData, ω, "l");
+                remotecall_fetch(breakComponent, j, fData, ω, "l");
             end
         end
 

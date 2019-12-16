@@ -414,15 +414,18 @@ end
 function breakComponent(fDataLocal, bItem, bType)
     if bType == "g"
         # generators
-        deleteat!(fDataLocal.genIDList,findfirst(fDataLocal.genIDList,bItem));
+        gListTemp = copy(fDataLocal.genIDList);
+        deleteat!(gListTemp,findfirst(fDataLocal.genIDList,bItem));
+        fDataLocal.genIDList = gListTemp;
     elseif bType == "l"
         # lines
-        lineIDList = deepcopy(fDataLocal.brList);
+        lineListTemp = deepcopy(fDataLocal.brList);
         for k in lineIDList
             if ((k[1],k[2]) == bItem) | ((k[2],k[1]) == bItem)
-                deleteat!(fDataLocal.brList,findfirst(fDataLocal.brList,k));
+                deleteat!(lineListTemp,findfirst(fDataLocal.brList,k));
             end
         end
+        fDataLocal.brList = lineListTemp;
     end
     global fData = fDataLocal;
 end
