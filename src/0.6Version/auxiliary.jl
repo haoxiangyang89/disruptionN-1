@@ -370,7 +370,7 @@ function cutUpdate(td,Ω,paraSet,cutCurrentData)
         for item in paraSet
             itemInd += 1;
             if item[1] == ω
-                if (cutCurrentData[itemInd].solStatus == :Optimal)|(cutCurrentData[itemInd].solStatus == :Suboptimal)
+                if (cutCurrentData[itemInd].solStatus == :Optimal)
                     if (td,ω) in keys(cutDict)
                         push!(cutDict[td,ω],cutCurrentData[itemInd]);
                     else

@@ -13,7 +13,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
     if qpopt
         mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
     else
-        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1,NumericFocus = 3));
     end
 
     # set up the variables
@@ -246,7 +246,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     if qpopt
         mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
     else
-        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1,NumericFocus = 3));
     end
 
     # set up the variables
