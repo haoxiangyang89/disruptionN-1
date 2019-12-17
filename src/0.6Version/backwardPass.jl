@@ -236,7 +236,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     if qpopt
         dp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
     else
-        dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1,NumericFocus = 3));
+        dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
     end
 
     # simple bounds dual variables
@@ -429,10 +429,6 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     # return the cut or the dual problem
     if solveOpt
         statusDp = solve(dp);
-        if statusDp != :Optimal
-            dp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,Threads = 1);
-            statusDp = solve(dp);
-        end
         println(statusDp, " ", td, " ", ωd);
         # obtain the primal solutions & obj value
         vhat = getobjectivevalue(dp);
