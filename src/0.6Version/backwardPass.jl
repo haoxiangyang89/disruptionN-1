@@ -429,6 +429,10 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     # return the cut or the dual problem
     if solveOpt
         statusDp = solve(dp);
+        if statusDp != :Optimal
+            dp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,Threads = 1);
+            statusDp = solve(dp);
+        end
         println(statusDp, " ", td, " ", ωd);
         # obtain the primal solutions & obj value
         vhat = getobjectivevalue(dp);

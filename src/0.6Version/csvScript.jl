@@ -148,9 +148,23 @@ databutil = Dict();
 for i in 1:3
     databutil[i] = load("butilResults_$(i)_AG.jld");
 end
-for i in 1:3
-    println("udet: ",sum(values(databutil[i]["detOut"][1])));
-    println("ustoch: ",sum(values(databutil[i]["stochOut"][1])));
+for j in 1:3
+    println("udet: ",sum(values(databutil[j]["detOut"][1])));
+    println("ustoch: ",sum(values(databutil[j]["stochOut"][1])));
+    wList = [databutil[j]["detOut"][2][i,b][1] for (i,b) in keys(databutil[j]["detOut"][2])];
+    chargeList = [databutil[j]["detOut"][2][i,b][2] for (i,b) in keys(databutil[j]["detOut"][2])];
+    dischargeList = [databutil[j]["detOut"][2][i,b][3] for (i,b) in keys(databutil[j]["detOut"][2])];
+    println(round(mean(wList)*100,3)," ",round(mean(chargeList)*100,3),
+        " ",round(mean(dischargeList)*100,3));
+
+    wList = [databutil[j]["stochOut"][2][i,b][1] for (i,b) in keys(databutil[j]["stochOut"][2])];
+    chargeList = [databutil[j]["stochOut"][2][i,b][2] for (i,b) in keys(databutil[j]["stochOut"][2])];
+    dischargeList = [databutil[j]["stochOut"][2][i,b][3] for (i,b) in keys(databutil[j]["stochOut"][2])];
+    effList = [databutil[j]["stochOut"][2][i,b][4] for (i,b) in keys(databutil[j]["stochOut"][2])];
+    println(round(mean(wList)*100,3)," ",round(mean(chargeList)*100,3)," ",
+        round(mean(dischargeList)*100,3)," ",round(mean(effList)*100,3));
+
+    println("+++++++++++++++++++++++++++++");
 end
 
 
@@ -160,7 +174,6 @@ for i in 1:3
     datahard[i] = load("hardResults_$(i)_AG.jld");
 end
 for i in 1:3
-    println("Null ",datadet[i]["stochOut"][24][1]);
     for ω in keys(datahard[i]["data"])
         println(ω,"    ",datahard[i]["data"][ω][1][length(datahard[i]["data"][ω][1])]);
     end

@@ -370,7 +370,7 @@ function cutUpdate(td,Ω,paraSet,cutCurrentData)
         for item in paraSet
             itemInd += 1;
             if item[1] == ω
-                if (cutCurrentData[itemInd].solStatus == :Optimal)
+                if (cutCurrentData[itemInd].solStatus == :Optimal)|(cutCurrentData[itemInd].solStatus == :Suboptimal)
                     if (td,ω) in keys(cutDict)
                         push!(cutDict[td,ω],cutCurrentData[itemInd]);
                     else
@@ -394,7 +394,9 @@ function yzCal(y,bData,loc)
 end
 
 # change the cost of generation by a multiplier
-function changeCost(fDataLocal, bDataLocal, cmulti)
+function changeCost(fData, bData, cmulti)
+    fDataLocal = deepcopy(fData);
+    bDataLocal = deepcopy(bData);
     for i in fDataLocal.genIDList
         for nIter in 1:fDataLocal.cp[i].n
             fDataLocal.cp[i].params[nIter] = fDataLocal.cp[i].params[nIter]*cmulti^(fDataLocal.cp[i].n - nIter);
@@ -411,7 +413,8 @@ function changeCost(fDataLocal, bDataLocal, cmulti)
 end
 
 # break a component
-function breakComponent(fDataLocal, bItem, bType)
+function breakComponent(fData, bItem, bType)
+    fDataLocal = deepcopy(fData);
     if bType == "g"
         # generators
         gListTemp = copy(fDataLocal.genIDList);
