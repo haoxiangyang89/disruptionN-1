@@ -394,9 +394,9 @@ function yzCal(y,bData,loc)
 end
 
 # change the cost of generation by a multiplier
-function changeCost(fData, bData, cmulti)
-    fDataLocal = deepcopy(fData);
-    bDataLocal = deepcopy(bData);
+function changeCost(fDatal, bDatal, cmulti)
+    fDataLocal = deepcopy(fDatal);
+    bDataLocal = deepcopy(bDatal);
     for i in fDataLocal.genIDList
         for nIter in 1:fDataLocal.cp[i].n
             fDataLocal.cp[i].params[nIter] = fDataLocal.cp[i].params[nIter]*cmulti^(fDataLocal.cp[i].n - nIter);
@@ -413,8 +413,8 @@ function changeCost(fData, bData, cmulti)
 end
 
 # break a component
-function breakComponent(fData, bItem, bType)
-    fDataLocal = deepcopy(fData);
+function breakComponent(fDatal, bItem, bType)
+    fDataLocal = deepcopy(fDatal);
     if bType == "g"
         # generators
         gListTemp = copy(fDataLocal.genIDList);
