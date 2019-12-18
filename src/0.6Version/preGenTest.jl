@@ -1,5 +1,5 @@
 # test to check if preGen helps reduce the solution time
-addprocs(30);
+addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
@@ -21,25 +21,15 @@ for ci in 1:length(caseList)
 
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 30, false,false, 2, 2);
 
-    startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, Dict(),
-        false, 200, [], 0, pathDict);
-    # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), Dict(),
-    #     false, 200, [], 0, pathDict);
-    elapsedT = time() - startT;
-    dataList["dOnly"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
-
-    save("pgResults_$(ci).jld","data",dataList);
-
     startPGT = time();
     cutDictPG = preGen(τ, T, Δt, N, iterMax);
     preGenT = time() - startPGT;
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG,
-        false, 200, [], 0, pathDict);
-    # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG,
+    # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG,
     #     false, 200, [], 0, pathDict);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 200, [], 0, pathDict);
     elapsedT = time() - startT;
     dataList["preGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
 

@@ -28,8 +28,9 @@ for ci in 1:length(caseList)
 
     # train the stochastic strategy
     cutDictPG = preGen(τ, T, Δt, N, iterMax);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, cutDictPG);
-    # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, max(Int64(round(300/N)),20), max(Int64(round(300/N)),20),cutDictPG);
+    # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, cutDictPG);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        max(Int64(round(300/N)),20), max(Int64(round(300/N)),20),cutDictPG);
     for j in procs()
         remotecall_fetch(cutIni,j,cutDict);
     end

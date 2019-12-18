@@ -18,13 +18,13 @@ for ci in 1:length(caseList)
         remotecall_fetch(readInData,j,ci,caseList,T);
     end
 
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 20, false,false, 2, 2);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 30, false,false, 2, 2);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 40, 40, Dict(),
-        false, 200, [], 0, pathDict);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), Dict(), false, 200, [], 0, pathDict);
     elapsedT = time() - startT;
-    dataList["allGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
+    dataList["dOnly"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 
     save("dOnlyResults_$(ci).jld","data",dataList);
 end
