@@ -26,5 +26,5 @@ for ci in 1:length(caseList)
     elapsedT = time() - startT;
     dataList["allGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
 
-    save("dOnlyResults_$(ci).jld","data",dataList);
+    save("agResults_$(ci).jld","data",dataList);
 end
