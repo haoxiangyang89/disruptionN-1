@@ -1,10 +1,10 @@
 # test 3: number of trial paths tests
-addprocs(30);
+addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 #pmap(i -> importIpopt(),1:30);
 
-NList = [1,5,10,20,30];
+NList = [1,5,10,15,20];
 dataList = Dict();
 iterMax = 20;
 NN = 5;

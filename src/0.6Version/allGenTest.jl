@@ -21,7 +21,7 @@ for ci in 1:length(caseList)
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 20, false,false, 2, 2);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 40, 40, Dict(),
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, Dict(),
         false, 200, [], 0, pathDict);
     elapsedT = time() - startT;
     dataList["allGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];
