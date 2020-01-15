@@ -22,7 +22,7 @@ for ci in 1:length(caseList)
     # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
     #     20, 20, cutDictPG, false, 0, [], 0, pathDict);
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
-        max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDict, false, 0, []);
+        max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 0, []);
 
     dataList["NoD"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
 
