@@ -4,30 +4,17 @@ addprocs(30);
 @everywhere const GUROBI_ENV = Gurobi.Env();
 pmap(i -> importIpopt(),1:30);
 
-fileAdd = "case13_ieee_old.m";
-fData = readStatic(fileAdd,500);
-disAdd = "testProbRead_96.csv"
-pDistr = readDisruption(disAdd,"csv");
-pAdd = "testDataP_96_Fixed.csv";
-qAdd = "testDataQ_96_Fixed.csv";
-dData = readDemand(pAdd,qAdd,"csv");
-bAdd = "testDataB.csv";
-bData = readBattery(bAdd,"csv");
-
 τ = 2;
 T = 12;
 Δt = 0.25;
 N = 30;
-pDistr = modifyT(pDistr,1/2,T);
-for ω in keys(pDistr.ωDistrn)
-    if (ω != (2,9))&(ω != 5)&(ω!=(8,12))
-        pDistr = modifyOmega(pDistr,ω);
-    end
-end
 ###########################################################################
 data = [];
 for T in [8,12,16]
-    pDistr = modifyT(pDistr,1/2,T);
+    for j in procs()
+        remotecall_fetch(readInData_old,j,T);
+    end
+
     # global mExt = Model(solver = IpoptSolver(linear_solver = "ma27"));
     global mExt = Model(solver = GurobiSolver());
     startTE = time();
@@ -37,7 +24,8 @@ for T in [8,12,16]
     mExtObj = getobjectivevalue(mExt);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
+    #cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, 20, 20);
     elapsedT = time() - startT;
     push!(data,(T,elapsedTE,mExtObj,elapsedT,LBHist));
 end

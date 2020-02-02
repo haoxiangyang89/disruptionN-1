@@ -736,3 +736,28 @@ function readInData(i,caseList,T,cz = 1e4,λD = 0)
         global pDistr = modifyT(pDistr,λD,T);
     end
 end
+
+function readInData_old(T,cz = 500,λD = 1/2)
+    fileAdd = "case13_ieee_old.m";
+    global fData = readStatic(fileAdd,cz);
+    disAdd = "testProbRead_96.csv"
+    global pDistr = readDisruption(disAdd,"csv");
+    pAdd = "testDataP_96_Fixed.csv";
+    qAdd = "testDataQ_96_Fixed.csv";
+    global dData = readDemand(pAdd,qAdd,"csv");
+    bAdd = "testDataB.csv";
+    global bData = readBattery(bAdd,"csv",fData.baseMVA);
+
+    pDistr = modifyT(pDistr,1/2,T);
+    for ω in keys(pDistr.ωDistrn)
+        if (ω != (2,9))&(ω != 5)&(ω!=(8,12))
+            global pDistr = modifyOmega(pDistr,ω);
+        end
+    end
+
+    if λD == 0
+        global pDistr = modifyT(pDistr,4/T,T);
+    else
+        global pDistr = modifyT(pDistr,λD,T);
+    end
+end
