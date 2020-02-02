@@ -737,7 +737,7 @@ function readInData(i,caseList,T,cz = 1e4,λD = 0)
     end
 end
 
-function readInData_old(T,cz = 500,λD = 1/2)
+function readInData_old(T,ωSet,cz = 500,λD = 1/2)
     fileAdd = "case13_ieee_old.m";
     global fData = readStatic(fileAdd,cz);
     disAdd = "testProbRead_96.csv"

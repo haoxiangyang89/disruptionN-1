@@ -2,7 +2,7 @@
 addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
-pmap(i -> importIpopt(),1:30);
+#pmap(i -> importIpopt(),1:30);
 
 τ = 2;
 T = 12;
@@ -10,9 +10,11 @@ T = 12;
 N = 30;
 ###########################################################################
 data = [];
+ωSet = [5,(2,9),(8,12)];
+
 for T in [8,12,16]
     for j in procs()
-        remotecall_fetch(readInData_old,j,T);
+        remotecall_fetch(readInData_old,j,T,ωSet);
     end
 
     # global mExt = Model(solver = IpoptSolver(linear_solver = "ma27"));
@@ -35,18 +37,13 @@ save("extensiveSDDP.jld","data",data);
 T = 8;
 Δt = 0.25;
 N = 30;
-ωSet = [[5,(2,9),(8,12)],
+ωSetTot = [[5,(2,9),(8,12)],
         [3,5,(2,9),(8,12)],
         [3,5,(2,9),(8,12),(10,13)]];
 
 for i in 1:3
-    pDistr = readDisruption(disAdd,"csv");
-    pDistr = modifyT(pDistr,1/2,T);
-
-    for ω in keys(pDistr.ωDistrn)
-        if !(ω in ωSet[i])
-            pDistr = modifyOmega(pDistr,ω);
-        end
+    for j in procs()
+        remotecall_fetch(readInData_old,j,T,ωSetTot[i]);
     end
 
     pDistr = modifyT(pDistr,1/2,T);
