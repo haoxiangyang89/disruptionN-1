@@ -748,9 +748,8 @@ function readInData_old(T,ωSet,cz = 500,λD = 1/2)
     bAdd = "testDataB.csv";
     global bData = readBattery(bAdd,"csv",fData.baseMVA);
 
-    pDistr = modifyT(pDistr,1/2,T);
     for ω in keys(pDistr.ωDistrn)
-        if (ω != (2,9))&(ω != 5)&(ω!=(8,12))
+        if !(ω in ωSet)
             global pDistr = modifyOmega(pDistr,ω);
         end
     end

@@ -27,7 +27,7 @@ for T in [8,12,16]
 
     startT = time();
     #cutDict,LBHist,UBHist,UBuHist,UBlHist = solveMain(τ, T, Δt, fData, pDistr, bData, dData, N, false, 20, 20);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, 20, 20);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false, 5, 5);
     elapsedT = time() - startT;
     push!(data,(T,elapsedTE,mExtObj,elapsedT,LBHist));
 end
@@ -46,7 +46,6 @@ for i in 1:3
         remotecall_fetch(readInData_old,j,T,ωSetTot[i]);
     end
 
-    pDistr = modifyT(pDistr,1/2,T);
     mp = Model(solver = IpoptSolver(linear_solver = "ma27"));
     startTE = time();
     mp = extForm(mp, 1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr);
