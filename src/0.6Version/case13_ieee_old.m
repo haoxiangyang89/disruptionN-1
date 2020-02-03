@@ -9,7 +9,7 @@
 %
 function mpc = case13_ieee
 mpc.version = '2';
-mpc.baseMVA = 100.0;
+mpc.baseMVA = 1.0;
 
 %% bus data
 %	bus_i	type	Pd	Qd	Gs	Bs	area	Vm	Va	baseKV	zone	Vmax	Vmin

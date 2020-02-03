@@ -16,7 +16,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
             if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
-                if k in hardened
+                if ωd in hardened
                     Bparams[k,t] = 1;
                 else
                     Bparams[k,t] = 0;
