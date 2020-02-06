@@ -20,6 +20,7 @@ for ci in 1:length(caseList)
         τ = Int64(1/6*T);
         for j in procs()
             remotecall_fetch(readInData,j,ci,caseList,T);
+            #remotecall_fetch(readInData_old,j,T,ωSet0,10000,0);
         end
 
         # select a preset pathDict
@@ -45,11 +46,13 @@ for ci in 1:length(caseList)
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
         println(round(meanSDDP,2)," ",round(meanSDDP - 1.96*sigmaSDDP,2)," ",round(meanSDDP + 1.96*sigmaSDDP,2));
-        stochOut[T] = [LBSDDP, costSDDP, listSDDP, meanSDDP, sigmaSDDP];
+        stochOut[T] = [LBSDDP, costSDDP, listSDDP, meanSDDP, sigmaSDDP, LBHist];
 
         detSol,detObj = detBuild(Δt, T, fData, bData, dData);
         detCostDict[T] = detObj;
 
+        #println("Output: ",round(meanDet,1)," & ",round(meanSDDP,1)," & ", round(meanDet - meanSDDP,1)," & ", round((meanDet - meanSDDP)/meanDet*100,1));
+        #save("detResults_old.jld", "detOut", detOut, "stochOut", stochOut, "nomOut", detCostDict);
         save("detResults_$(ci).jld", "detOut", detOut, "stochOut", stochOut, "nomOut", detCostDict);
     end
 end

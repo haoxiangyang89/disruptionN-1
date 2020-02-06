@@ -17,6 +17,7 @@ for ci in 1:length(caseList)
     τ = Int64(1/6*T);
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T,1e4);
+        #remotecall_fetch(readInData_old,j,T,[(2,9),(8,12),(10,13)],10000,0);
     end
     cutDictPG = preGen(τ, T, Δt, N, iterMax, false, Dict(), []);
     # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
@@ -27,6 +28,7 @@ for ci in 1:length(caseList)
     dataList["NoD"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist];
 
     for ω in keys(pDistr.ωDistrn)
+    #for ω in [(2,9),(8,12),(10,13)]
         cutDictPG = preGen(τ, T, Δt, N, iterMax, false, Dict(), [ω]);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
         #     20, 20, cutDictPG, false, 0, [ω], 0, pathDict);

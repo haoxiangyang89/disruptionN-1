@@ -18,6 +18,7 @@ for ci in 1:length(caseList)
     dataList[ci] = Dict();
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T);
+        #remotecall_fetch(readInData_old,j,T,ωSet0,10000,0);
     end
 
     for τ in τList
@@ -37,6 +38,6 @@ for ci in 1:length(caseList)
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
         dataList[ci][τ] = [LBHist,LBSDDP,listSDDP,meanSDDP,sigmaSDDP];
-        save("tauResults.jld","data",dataList);
+        #save("tauResults_old.jld","data",dataList);
     end
 end
