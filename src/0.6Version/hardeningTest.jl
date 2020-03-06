@@ -33,7 +33,7 @@ addprocs(20);
                     sqSDDP[i][g][t] = solSDDP[i][j][1].sq[g,t];
                 end
                 for ib in fData.IDList
-                    LSDDP[i][ib][t] = solSDDP[i][j][1].lpp[i,t] + solSDDP[i][j][1].lpm[i,t] + solSDDP[i][j][1].lqp[i,t] + solSDDP[i][j][1].lqm[i,t];
+                    LSDDP[i][ib][t] = solSDDP[i][j][1].lp[i,t] + solSDDP[i][j][1].lq[i,t];
                 end
             end
         end

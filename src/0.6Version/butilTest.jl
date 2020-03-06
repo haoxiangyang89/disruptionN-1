@@ -126,7 +126,7 @@ for ci in 1:length(caseList)
             else
                 cdCoeffAvg = -Inf;
             end
-            statS[i,b] = [meanwS,chargeS,dischargeS,cdCoeffAvg];
+            statS[i,b] = [meanwS,chargeS,dischargeS,cdCoeffAvg,cdCoeff];
         end
     end
     save("butilResults_$(ci).jld","detOut",[uDet,statD],"stochOut",[uSDDP,statS]);
