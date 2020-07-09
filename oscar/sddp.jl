@@ -9,57 +9,6 @@ const GRB = Gurobi.Env()
 
 include("data.jl")
 
-reset_limits(pm, ::Nothing, ::Nothing) = nothing
-
-function reset_limits(pm, reset_key, reset_data)
-    return set_bounds(pm, reset_key, reset_data...)
-end
-
-function set_bounds(pm, ω::Int, pgl, pgu, qgl, qgu)
-    pg = PowerModels.var(pm, :pg)[ω]
-    gq = PowerModels.var(pm, :qg)[ω]
-    previous = (
-        lower_bound(pg),
-        upper_bound(pg),
-        lower_bound(qg),
-        upper_bound(qg),
-    )
-    set_lower_bound(pg, pgl)
-    set_upper_bound(pg, pgu)
-    set_lower_bound(qg, qgl)
-    set_upper_bound(qg, qgu)
-    return previous
-end
-
-function set_bounds(pm, ω::Int, pgl, pgu, qgl, qgu)
-    for key in keys(PowerModels.var(pm, :p))
-        l, i, j = key[1]
-        if (ω != i => j && ω != j => i)
-            continue
-        end
-        p = PowerModels.var(pm, :p)[key]
-        q = PowerModels.var(pm, :q)[key]
-
-
-        fix(, 0.0; force = true)
-        fix(PowerModels.var(pm, :q)[key], 0.0; force = true)
-    end
-
-    pg = PowerModels.var(pm, :pg)[ω]
-    gq = PowerModels.var(pm, :qg)[ω]
-    previous = (
-        lower_bound(pg),
-        upper_bound(pg),
-        lower_bound(qg),
-        upper_bound(qg),
-    )
-    set_lower_bound(pg, pgl)
-    set_upper_bound(pg, pgu)
-    set_lower_bound(qg, qgl)
-    set_upper_bound(qg, qgu)
-    return previous
-end
-
 function main()
     data = build_data(
         "../data/case13_ieee.m",
@@ -68,53 +17,103 @@ function main()
         "../data/testDataQ_13.csv",
         "../data/testProbRead_13.csv",
     )
+    gen_data = data.network_data["gen"]
+    gens = collect(keys(gen_data))
+
+    line_data = data.network_data["branch"]
+    lines = collect(keys(line_data))
+    from(l) = string(line_data[l]["f_bus"])
+    to(l) = string(line_data[l]["t_bus"])
+
+    buses = 1:size(data.P, 1)
+
+    batteries = 1:size(data.B, 1)
+    battery_bus = Dict(string(Int, data.B[b, 2]) for b in batteries)
+
     disruption_length = 2
     model = SDDP.PolicyGraph(
-        build_graph(data.T, data.ρ, disruption_length),
+        build_graph(data.T, data.ρ - 1, disruption_length),
         sense = :Min,
         lower_bound = 0.0,
         optimizer = () -> Gurobi.Optimizer(GRB),
-    ) do sp, node
-        stage, disruption = node.stage, node.disruption_length
+    ) do subproblem, node
+        t, disruption = node.stage, node.disruption_length
         set_silent(sp)
 
-        # Modify the pd and qd for the buses
-        for load in values(data.network_data["load"])
-            load["pq"] = data.P[load["load_bus"], stage]
-            load["gq"] = data.Q[load["load_bus"], stage]
+        # State variables
+        @variable(
+            subproblem,
+            gen_data[g]["pmin"] <= Sp[g = gens] <= gen_data[g]["pmax"],
+            SDDP.State,
+            initial_value = 0.0
+        )
+        @variable(
+            subproblem,
+            gen_data[g]["qmin"] <= Sq[g = gens] <= gen_data[g]["qmax"],
+            SDDP.State,
+            initial_value = 0.0
+        )
+        @variable(subproblem, w[batteries], SDDP.State, initial_value = 0.0)
+        @variable(subproblem, u[batteries], SDDP.State, initial_value = 0.0)
+
+        if t > 1
+            # u is a first-stage decision only
+            @constraint(subproblem, [b = batteries], u[b].out == u[b].in)
         end
 
-        # TODO: account for the fact that the disruption periods correspond to
-        # `disruption` time periods.
-        pm = PowerModels.instantiate_model(
-            data.network_data,
-            PowerModels.SOCWRPowerModel,
-            PowerModels.build_opf;
-            jump_model = sp
+        # Control variables
+        @variables(subproblem, begin
+            V[buses]
+            P[lines]
+            Q[lines]
+            W[lines]
+            zp[batteries]
+            zq[batteries]
+            L[buses, [:p, :q], [:+, :-]] >= 0
+        end)
+
+        # Kirchoff's Current Law
+        @constraint(
+            subproblem,
+            [i in buses],
+            sum(zp[b] for b in batteries if battery_bus[b] == i) +
+                sum(Sp[g].out for g in gens if gen_data[g]["gen_bus"] == i) -
+                data.P[parse(Int, i), t] +
+                L[i, :p, :+] - L[i, :p, :-] ==
+                sum(P[l, t] for l in lines if from(l) == i)
         )
-        # TODO: state variables
-        generators = collect(keys(data.network_data["gen"]))
-        @variable(
-            sp, s[generators, [:P, :Q]] >= 0, SDDP.State, initial_value = 0.0
+        @constraint(
+            subproblem,
+            [i in buses],
+            sum(zq[b] for b in batteries if battery_bus[b] == i) +
+                sum(Sq[g].out for g in gens if gen_data[g]["gen_bus"] == i) -
+                data.Q[parse(Int, i), t] +
+                L[i, :q, :+] - L[i, :q, :-] ==
+                sum(Q[l, t] for l in lines if from(l) == i)
         )
 
-        @stageobjective(sp, objective_function(sp))
+        @constraints(subproblem, begin
+            # LinDist Flow power flow equations
+            [l = lines], V[to(l)] == V[from(l)] - 2 * (
+                line_data[l]["br_r"] * P[l] + line_data[l]["br_x"] * Q[l]
+            )
+            # Thermal limits
+            [l = lines], [W[l], P[l], Q[l]] in SecondOrderCone()
+            [b = batteries], [u.out[b], zp[b], zq[b]] in SecondOrderCone()
+            # Generator ramp up limit
+            [g = gens], s[g, :p].out - s[g, :p].in <= gen_data[g]["ramp_10"]
+            # Generator ramp down limit
+            [g = gens], s[g, :p].out - s[g, :p].in >= -gen_data[g]["ramp_10"]
+        end)
 
-        if disruption > 0
-            reset_key, reset_data = nothing, nothing
-            SDDP.parameterize(sp, data.support, data.nominal_probability) do ω
-                # TODO: Reset the line and generator limits because the previous
-                # scenario will still be set!
-                reset_limits(pm, reset_key, reset_data)
-                if ω isa Pair
-                    # Enforce the line disruption
+        # Battery efficiency
 
-                else
-                    @assert ω isa Int
-                    # Enforce the generator disruption
-                    reset_key = ω
-                    reset_data = set_bounds(pm, ω, 0.0, 0.0, 0.0, 0.0)
-                end
+        @stageobjective(sp, 0.0)
+        SDDP.parameterize(sp, data.support, data.nominal_probability) do ω
+            if ω isa Int
+                # Change generator bounds
+            else
+                # Change line bounds
             end
         end
     end

@@ -26,8 +26,8 @@ function build_data(ieee_file, B_file, P_file, Q_file, prob_file)
     return (
         network_data = PowerModels.parse_file(ieee_file),
         B = DelimitedFiles.readdlm(B_file, ','),
-        P = DelimitedFiles.readdlm(P_file, ','),
-        Q = DelimitedFiles.readdlm(Q_file, ','),
+        P = DelimitedFiles.readdlm(P_file, ',')[:, 2:end],
+        Q = DelimitedFiles.readdlm(Q_file, ',')[:, 2:end],
         T = T,
         ρ = ρ,
         support = support,
