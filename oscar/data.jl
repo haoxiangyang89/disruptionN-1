@@ -68,3 +68,50 @@ function build_graph(T, ρ, N)
     end
     return graph
 end
+
+function readBattery(dataRaw,baseMVA = 100)
+    # read in the battery information: charging/discharging factor, capacity
+    # csv file format:
+    # First column: node ID
+    # Second column: ηd
+    # Third column: ηc
+    # Fourth column: capacity
+    # Fifth column: cost (optional)
+    mb,nb = size(dataRaw);
+    capacity = Dict();
+    cost = Dict();
+    ηα = Dict();
+    ηβ = Dict();
+    IDList = [];
+    LocDict = Dict();
+    bInv = Dict();
+    uCap = Dict();
+
+    for i in 1:mb
+        ID = Int64(dataRaw[i,1]);
+        push!(IDList,ID);
+        loc = Int64(dataRaw[i,2]);
+        LocDict[ID] = loc;
+        capacity[ID] = dataRaw[i,3]/baseMVA;
+        cost[ID] = dataRaw[i,4]*baseMVA;
+        bInv[ID] = dataRaw[i,5]/baseMVA;
+        uCap[ID] = dataRaw[i,6]/baseMVA;
+        ηparams = [j for j in dataRaw[i,7:nb] if j != ""];
+        ηα[ID] = [];
+        ηβ[ID] = [];
+        for j in 1:2:length(ηparams)
+            push!(ηα[ID],ηparams[j]);
+            # ηα must be monotonously decreasing
+            push!(ηβ[ID],ηparams[j + 1]);
+        end
+    end
+    bData = (IDList = IDList,
+            LocDict = LocDict,
+            bInv = bInv,
+            ηα = ηα,
+            ηβ = ηβ,
+            capacity = capacity,
+            cost = cost,
+            uCap = uCap);
+    return bData;
+end
