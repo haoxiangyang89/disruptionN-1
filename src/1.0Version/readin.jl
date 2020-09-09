@@ -597,11 +597,12 @@ function readDisruption(fileName,fileType)
         # Third row: Ω
         # Fourth row: pr{B_ω = 0}
         dataRaw = readdlm(fileName, ',');
+        mRaw,nRaw = size(dataRaw);
 
         # detect the dimension of T
         dataT = dataRaw[1:2,:];
         emptyInd = findfirst(x -> x=="", dataT[1,:]);
-        if emptyInd != 0
+        if emptyInd != nothing
             # if it is not full length
             dataT = dataT[:,1:(emptyInd - 1)];
         end
@@ -614,7 +615,7 @@ function readDisruption(fileName,fileType)
         # detect the dimension of Ω
         dataOme = dataRaw[3:4,:];
         emptyInd = findfirst(x -> x=="", dataOme[1,:]);
-        if emptyInd != 0
+        if emptyInd != nothing
             # if it is not full length
             dataOme = dataOme[:,1:(emptyInd - 1)];
         end
