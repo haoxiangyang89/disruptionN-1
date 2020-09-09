@@ -588,7 +588,7 @@ function readStatic(fileName::String, cz = 1e7)
     return fData;
 end
 
-function readDisruption(fileName,fileType)
+function readDisruption(tfileName,ofileName,fileType)
     # read in the disruption data: disruption time distribution
     if fileType == "csv"
         # csv file format:
@@ -596,16 +596,7 @@ function readDisruption(fileName,fileType)
         # Second row: pr{D = t}
         # Third row: Ω
         # Fourth row: pr{B_ω = 0}
-        dataRaw = readdlm(fileName, ',');
-        mRaw,nRaw = size(dataRaw);
-
-        # detect the dimension of T
-        dataT = dataRaw[1:2,:];
-        emptyInd = findfirst(x -> x=="", dataT[1,:]);
-        if emptyInd != nothing
-            # if it is not full length
-            dataT = dataT[:,1:(emptyInd - 1)];
-        end
+        dataT = readdlm(tfileName, ',');
         tDistrn = Dict();
         mt,nt = size(dataT);
         for tInd in 1:nt
@@ -613,24 +604,27 @@ function readDisruption(fileName,fileType)
         end
 
         # detect the dimension of Ω
-        dataOme = dataRaw[3:4,:];
-        emptyInd = findfirst(x -> x=="", dataOme[1,:]);
-        if emptyInd != nothing
-            # if it is not full length
-            dataOme = dataOme[:,1:(emptyInd - 1)];
-        end
+        dataOme = readdlm(ofileName, ',');
         ωDistrn = Dict();
         mo,no = size(dataOme);
-        for oInd in 1:no
-            lineStr = dataOme[1,oInd];
+        for oInd in 1:mo
+            lineStr = dataOme[oInd,1];
             if ',' in lineStr
                 # parse the line
                 startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
-                ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[2,oInd];
+                if no == 2
+                    ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[oInd,2];
+                elseif no == 3
+                    ωDistrn[(parse(Int64,startN),parse(Int64,endN)),dataOme[oInd,3]] = dataOme[oInd,2];
+                end
             else
                 # parse the node
                 disN = lineStr;
-                ωDistrn[disN] = dataOme[2,oInd];
+                if no == 2
+                    ωDistrn[disN] = dataOme[oInd,2];
+                elseif no == 3
+                    ωDistrn[(disN,dataOme[oInd,3])] = dataOme[oInd,2];
+                end
             end
         end
         if sum(values(ωDistrn)) == 1
@@ -723,8 +717,9 @@ end
 function readInData(i,caseList,T,cz = 1e4,λD = 0)
     fileAdd = "case$(caseList[i])_ieee.m";
     global fData = readStatic(fileAdd,cz);
-    disAdd = "testProbRead_$(caseList[i]).csv"
-    global pDistr = readDisruption(disAdd,"csv");
+    disAddt = "testProbReadt_$(caseList[i]).csv";
+    disAddo = "testProbReado_$(caseList[i]).csv";
+    global pDistr = readDisruption(disAddt,disAddo,"csv");
     pAdd = "testDataP_$(caseList[i]).csv";
     qAdd = "testDataQ_$(caseList[i]).csv";
     global dData = readDemand(pAdd,qAdd,"csv");
