@@ -306,7 +306,7 @@ function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
         push!(pathTimeList, pathTimes);
     end
 
-    sp = Model(solver = GurobiSolver(OutputFlag = 0));
+    sp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0));
     @variable(sp, x[i in 1:length(pathSet)], Bin);
     @constraint(sp, sum(x[i] for i in 1:length(pathSet)) == N);
     @objective(sp, Max, sum(sum((N*iterNo - genCutsCount[t])*x[i] for t in 2:T if t in [pathTimeList[i][j] for j in 1:length(pathTimeList[i])])
@@ -370,7 +370,7 @@ function cutUpdate(td,Ω,paraSet,cutCurrentData)
         for item in paraSet
             itemInd += 1;
             if item[1] == ω
-                if (cutCurrentData[itemInd].solStatus == :Optimal)
+                if (cutCurrentData[itemInd].solStatus == MOI.Optimal)
                     if (td,ω) in keys(cutDict)
                         push!(cutDict[td,ω],cutCurrentData[itemInd]);
                     else

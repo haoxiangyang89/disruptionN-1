@@ -4,12 +4,12 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
-        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
-        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
+        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
+        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
     end
 
     # construct the first stage without disruption occurring
-    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+    mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
 
     # set up the variables
     @variable(mp, fData.Pmin[i] <= sp[i in fData.genIDList, t in 1:T] <= fData.Pmax[i]);
@@ -57,12 +57,12 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], norm([p[k,t], q[k,t]]) <= fData.rateA[k]);
+    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], [fData.rateA[k], p[k,t], q[k,t]] in SecondOrderCone());
     @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in 1:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t], zq[i,t]]) <= u[i]);
+    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], [u[i], zp[i,t], zq[i,t]] in SecondOrderCone());
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in 1:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
     @constraint(mp, bInvmax[i in bData.IDList, t in 1:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
@@ -80,7 +80,7 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
         fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
     @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
-        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+        [tAux1[i,t], tAux2[i,t], tAux3[i,t]] in SecondOrderCone());
     @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
         fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
 
@@ -91,8 +91,9 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
 
     if solveOpt
         # solve the problem
-        statusMp = solve(mp);
-        mpObj = getobjectivevalue(mp);
+        optimize!(mp);
+        mpObj = objective_value(mp);
+        statusMp = termination_status(mp);
         println("First stage, solving status $(statusMp)");
 
         # obtain the solutions
@@ -105,29 +106,29 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         solzp = Dict();
         for i in fData.genIDList
             for t in 1:T
-                if abs(getvalue(sp[i,t])) > 1e-5
-                    solSp[i,t] = getvalue(sp[i,t]);
+                if abs(value(sp[i,t])) > 1e-5
+                    solSp[i,t] = value(sp[i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if abs(getvalue(sq[i,t])) > 1e-5
-                    solSq[i,t] = getvalue(sq[i,t]);
+                if abs(value(sq[i,t])) > 1e-5
+                    solSq[i,t] = value(sq[i,t]);
                 else
                     solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if abs(getvalue(u[i])) > 1e-5
-                solu[i] = getvalue(u[i]);
+            if abs(value(u[i])) > 1e-5
+                solu[i] = value(u[i]);
                 for t in 1:T
-                    if getvalue(w[i,t]) > 1e-5
-                        solw[i,t] = getvalue(w[i,t]);
+                    if value(w[i,t]) > 1e-5
+                        solw[i,t] = value(w[i,t]);
                     else
                         solw[i,t] = 0;
                     end
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -136,8 +137,8 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
                 solu[i] = 0;
                 for t in 1:T
                     solw[i,t] = 0;
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -146,13 +147,13 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         end
         for i in fData.IDList
             for t in 1:T
-                if (abs(getvalue(lpp[i,t])) > 1e-8)|(abs(getvalue(lpm[i,t])) > 1e-8)
-                    solLp[i,t] = getvalue(lpp[i,t]) - getvalue(lpm[i,t]);
+                if (abs(value(lpp[i,t])) > 1e-8)|(abs(value(lpm[i,t])) > 1e-8)
+                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (abs(getvalue(lqp[i,t])) > 1e-8)|(abs(getvalue(lqm[i,t])) > 1e-8)
-                    solLq[i,t] = getvalue(lqp[i,t]) - getvalue(lqm[i,t]);
+                if (abs(value(lqp[i,t])) > 1e-8)|(abs(value(lqm[i,t])) > 1e-8)
+                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
                 end
@@ -171,8 +172,8 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
-        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
-        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
+        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
+        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
     end
     Bparams = Dict();
     for t in td:T
@@ -197,7 +198,7 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         Bparams[i,td - 1] = 1;
     end
 
-    mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+    mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
 
     # set up the variables
     @variable(mp, fData.Pmin[i]*Bparams[i,t] <= sp[i in fData.genIDList,t in (td - 1):T] <= fData.Pmax[i]*Bparams[i,t]);
@@ -246,16 +247,16 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
+    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], [fData.rateA[k], p[k,t], q[k,t]] in SecondOrderCone());
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
     @constraint(mp, powerflow1[k in fData.brList, t in td:T;Bparams[k,t] == 1], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    #@constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
-    @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
-    @constraint(mp, bThermal2[i in bData.IDList, t in td:T], zq[i,t] <= u[i]);
+    @constraint(mp, bThermal[i in bData.IDList, t in td:T], [u[i], zp[i,t], zq[i,t]] in SecondOrderCone());
+    # @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
+    # @constraint(mp, bThermal2[i in bData.IDList, t in td:T], zq[i,t] <= u[i]);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
     @constraint(mp, bInvmax[i in bData.IDList, t in td:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,td - 1] == currentSol.w[i,td - 1]);
@@ -276,7 +277,7 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
     @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
         fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
     @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
-        norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+        [tAux1[i,t],tAux2[i,t],tAux3[i,t]] in SecondOrderCone());
     @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
         fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
 
@@ -287,12 +288,13 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
 
     if solveOpt
         # solve the problem
-        statusMp = solve(mp);
+        optimize!(mp);
+        statusMp = termination_status(mp);
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         println("Disruption time $(td), scenario $(ωd), solving status $(statusMp)");
 
-        mpObj = getobjectivevalue(mp);
+        mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
         solSq = Dict();
@@ -303,29 +305,29 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         solzp = Dict();
         for i in fData.genIDList
             for t in td:T
-                if abs(getvalue(sp[i,t])) > 1e-5
-                    solSp[i,t] = getvalue(sp[i,t]);
+                if abs(value(sp[i,t])) > 1e-5
+                    solSp[i,t] = value(sp[i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if abs(getvalue(sq[i,t])) > 1e-5
-                    solSq[i,t] = getvalue(sq[i,t]);
+                if abs(value(sq[i,t])) > 1e-5
+                    solSq[i,t] = value(sq[i,t]);
                 else
                     solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if abs(getvalue(u[i])) > 1e-5
-                solu[i] = getvalue(u[i]);
+            if abs(value(u[i])) > 1e-5
+                solu[i] = value(u[i]);
                 for t in td:T
-                    if abs(getvalue(w[i,t])) > 1e-5
-                        solw[i,t] = getvalue(w[i,t]);
+                    if abs(value(w[i,t])) > 1e-5
+                        solw[i,t] = value(w[i,t]);
                     else
                         solw[i,t] = 0;
                     end
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -334,8 +336,8 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
                 solu[i] = 0;
                 for t in td:T
                     solw[i,t] = 0;
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -344,13 +346,13 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         end
         for i in fData.IDList
             for t in td:T
-                if (abs(getvalue(lpp[i,t])) > 1e-8)|(abs(getvalue(lpm[i,t])) > 1e-8)
-                    solLp[i,t] = getvalue(lpp[i,t]) - getvalue(lpm[i,t]);
+                if (abs(value(lpp[i,t])) > 1e-8)|(abs(value(lpm[i,t])) > 1e-8)
+                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (abs(getvalue(lqp[i,t])) > 1e-8)|(abs(getvalue(lqm[i,t])) > 1e-8)
-                    solLq[i,t] = getvalue(lqp[i,t]) - getvalue(lqm[i,t]);
+                if (abs(value(lqp[i,t])) > 1e-8)|(abs(value(lqm[i,t])) > 1e-8)
+                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
                 end

@@ -30,7 +30,9 @@ for ci in 1:length(caseList)
         listDet = [costDet[i] for i in 1:NN];
         meanDet = mean(listDet);
         sigmaDet = std(listDet);
-        println(round(meanDet,2)," ",round(meanDet - 1.96*sigmaDet,2)," ",round(meanDet + 1.96*sigmaDet,2));
+        println(round(meanDet,digits = 2)," ",
+                round(meanDet - 1.96*sigmaDet,digits = 2)," ",
+                round(meanDet + 1.96*sigmaDet,digits = 2));
         detOut[T] = [costDet,listDet,meanDet,sigmaDet];
 
         # train the stochastic programming strategy
@@ -46,7 +48,9 @@ for ci in 1:length(caseList)
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
-        println(round(meanSDDP,2)," ",round(meanSDDP - 1.96*sigmaSDDP,2)," ",round(meanSDDP + 1.96*sigmaSDDP,2));
+        println(round(meanSDDP,digits = 2)," ",
+                round(meanSDDP - 1.96*sigmaSDDP,digits = 2)," ",
+                round(meanSDDP + 1.96*sigmaSDDP,digits = 2));
         stochOut[T] = [LBSDDP, costSDDP, listSDDP, meanSDDP, sigmaSDDP, LBHist];
 
         detSol,detObj = detBuild(Δt, T, fData, bData, dData);

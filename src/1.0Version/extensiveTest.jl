@@ -18,7 +18,7 @@ for T in [8,12,16]
     end
 
     # global mExt = Model(solver = IpoptSolver(linear_solver = "ma27"));
-    global mExt = Model(solver = GurobiSolver());
+    global mExt = Model(Gurobi.Optimizer);
     startTE = time();
     global mExt = extForm(1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr, true);
     solve(mExt);
@@ -49,7 +49,7 @@ for i in 1:3
         remotecall_fetch(readInData_old,j,T,ωSetTot[i]);
     end
 
-    global mExt = Model(solver = GurobiSolver(NumericFocus = 3));
+    global mExt = Model(optimizer_with_attributes(Gurobi.Optimizer, "NumericFocus" => 3));
     startTE = time();
     global mExt = extForm(1, 0, [[],bData.bInv,[]], 1, τ, Δt, T, fData, bData, dData, pDistr, true);
     solve(mExt);

@@ -42,9 +42,9 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
     end
 
     if qpopt
-        mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+        mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
     else
-        mp = Model(solver = GurobiSolver(GUROBI_ENV, OutputFlag = 0, QCPDual = 1,Threads = 1,NumericFocus = 3));
+        mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end
 
     # set up the variables
@@ -98,8 +98,8 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
         @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
         @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
     else
-        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
-        @constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], [fData.rateA[k],p[k,t],q[k,t]] in SecondOrderCone());
+        @constraint(mp, bThermal[i in bData.IDList, t in td:T], [u[i],zp[i,t],zq[i,t]] in SecondOrderCone());
     end
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
@@ -136,27 +136,28 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         #optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", print_level = 0, acceptable_tol = 1e-8, max_iter = 10000));
-        statusMp = solve(mp);
+        optimize!(mp);
+        statusMp = termination_status(mp);
         println(statusMp, " ", td, " ", ωd);
         # obtain the primal solutions & obj value
-        vhat = getobjectivevalue(mp);
+        vhat = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
         solw = Dict();
         solu = Dict();
         for i in fData.genIDList
-            solSp[i] = getvalue(sp[i,td - 1]);
+            solSp[i] = value(sp[i,td - 1]);
         end
         for i in bData.IDList
-            solu[i] = getvalue(u[i]);
-            solw[i] = getvalue(w[i,td - 1]);
+            solu[i] = value(u[i]);
+            solw[i] = value(w[i,td - 1]);
         end
         # obtain the dual solutions
         dsolλ = Dict();
         dsolγ = Dict();
         dsolμ = Dict();
         for i in fData.genIDList
-            dsolλ[i] = getdual(spIni[i]);
+            dsolλ[i] = dual(spIni[i]);
             vhat -= dsolλ[i]*solSp[i];
             if abs(dsolλ[i]) < 1e-4
                 if dsolλ[i] < 0
@@ -166,7 +167,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
             end
         end
         for i in bData.IDList
-            dsolγ[i] = getdual(bInvIni[i]);
+            dsolγ[i] = dual(bInvIni[i]);
             vhat -= dsolγ[i]*solw[i];
             if abs(dsolγ[i]) < 1e-4
                 if dsolγ[i] < 0
@@ -174,7 +175,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
                 end
                 dsolγ[i] = 0;
             end
-            dsolμ[i] = getdual(uIni[i]);
+            dsolμ[i] = dual(uIni[i]);
             vhat -= dsolμ[i]*solu[i];
             if abs(dsolμ[i]) < 1e-4
                 if dsolμ[i] < 0
@@ -234,9 +235,9 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     end
 
     if qpopt
-        dp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+        dp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
     else
-        dp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+        dp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end
 
     # simple bounds dual variables
@@ -394,18 +395,18 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         for t in td:T
             for k in fData.brList
                 if Bparams[k,t] == 1
-                    μ1List = [μ1[k,t,1],μ1[k,t,2]];
-                    @constraint(dp,norm(μ1List) <= ν1[k,t]);
+                    μ1List = [ν1[k,t], μ1[k,t,1], μ1[k,t,2]];
+                    @constraint(dp, μ1List in SecondOrderCone());
                 end
             end
             for i in bData.IDList
-                μ2List = [μ2[i,t,1],μ2[i,t,2]];
-                @constraint(dp,norm(μ2List) <= ν2[i,t]);
+                μ2List = [ν2[i,t], μ2[i,t,1], μ2[i,t,2]];
+                @constraint(dp, μ2List in SecondOrderCone());
             end
             for i in fData.genIDList
                 if fData.cp[i].n == 3
-                    μ3List = [μ3[i,t,1],μ3[i,t,2]];
-                    @constraint(dp,norm(μ3List) <= ν3[i,t]);
+                    μ3List = [ν3[i,t], μ3[i,t,1], μ3[i,t,2]];
+                    @constraint(dp, μ3List in SecondOrderCone());
                 end
             end
         end
@@ -428,10 +429,11 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
 
     # return the cut or the dual problem
     if solveOpt
-        statusDp = solve(dp);
+        optimize!(dp);
+        statusDp = termination_status(dp);
         println(statusDp, " ", td, " ", ωd);
         # obtain the primal solutions & obj value
-        vhat = getobjectivevalue(dp);
+        vhat = objective_value(dp);
 
         solSp = Dict();
         solw = Dict();
@@ -448,7 +450,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         dsolγ = Dict();
         dsolμ = Dict();
         for i in fData.genIDList
-            dsolλ[i] = -getvalue(λsp[i]);
+            dsolλ[i] = -value(λsp[i]);
             vhat -= dsolλ[i]*solSp[i];
             if abs(dsolλ[i]) < 1e-4
                 if dsolλ[i] < 0
@@ -458,7 +460,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
             end
         end
         for i in bData.IDList
-            dsolγ[i] = -getvalue(λw[i]);
+            dsolγ[i] = -value(λw[i]);
             vhat -= dsolγ[i]*solw[i];
             if abs(dsolγ[i]) < 1e-4
                 if dsolγ[i] < 0
@@ -466,7 +468,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
                 end
                 dsolγ[i] = 0;
             end
-            dsolμ[i] = -getvalue(λu[i]);
+            dsolμ[i] = -value(λu[i]);
             vhat -= dsolμ[i]*solu[i];
             if abs(dsolμ[i]) < 1e-4
                 if dsolμ[i] < 0
@@ -583,7 +585,7 @@ function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
         possibleTList = [t for t in 1:T];
         for t in [trialPaths[n][i][2] for i in 2:length(trialPaths[n])]
             for tp in 1:τ
-                deleteat!(possibleTList,findin(possibleTList,t+tp));
+                deleteat!(possibleTList,findfirst(possibleTList,t+tp));
             end
         end
         tpDict[n] = possibleTList;

@@ -11,9 +11,9 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
 
     # construct the first stage without disruption occurring
     if qpopt
-        mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+        mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
     else
-        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+        mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end
 
     # set up the variables
@@ -67,8 +67,8 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         @constraint(mp, lineThermal[k in fData.brList, t in 1:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
         @constraint(mp, bThermal[i in bData.IDList, t in 1:T], zp[i,t]^2+zq[i,t]^2 <= u[i]^2);
     else
-        @constraint(mp, lineThermal[k in fData.brList, t in 1:T], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
-        @constraint(mp, bThermal[i in bData.IDList, t in 1:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+        @constraint(mp, lineThermal[k in fData.brList, t in 1:T], [fData.rateA[k],p[k,t],q[k,t]] in SecondOrderCone());
+        @constraint(mp, bThermal[i in bData.IDList, t in 1:T], [u[i],zp[i,t],zq[i,t]] in SecondOrderCone());
     end
     @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
@@ -107,7 +107,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
             fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
         @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
-            norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+            [tAux1[i,t],tAux2[i,t],tAux3[i,t]] in SecondOrderCone());
         @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
             fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
     end
@@ -124,13 +124,18 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        statusMp = solve(mp);
+        optimize!(mp);
+        statusMp = termination_status(mp);
         if statusMp != :Optimal
-            mp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,Threads = 1);
-            statusMp = solve(mp);
+            set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
+                                                        "OutputFlag" => 0,
+                                                        "NumericFocus" => 3,
+                                                        "Threads" => 1));
+            optimize!(mp);
+            statusMp = termination_status(mp);
         end
         #with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
-        mpObj = getobjectivevalue(mp);
+        mpObj = objective_value(mp);
         println("First stage, solving status $(statusMp)");
         # obtain the solutions
         solSp = Dict();
@@ -142,29 +147,29 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         solzp = Dict();
         for i in fData.genIDList
             for t in 1:T
-                if abs(getvalue(sp[i,t])) > 1e-5
-                    solSp[i,t] = getvalue(sp[i,t]);
+                if abs(value(sp[i,t])) > 1e-5
+                    solSp[i,t] = value(sp[i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if abs(getvalue(sq[i,t])) > 1e-5
-                    solSq[i,t] = getvalue(sq[i,t]);
+                if abs(value(sq[i,t])) > 1e-5
+                    solSq[i,t] = value(sq[i,t]);
                 else
                     solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if abs(getvalue(u[i])) > 1e-5
-                solu[i] = getvalue(u[i]);
+            if abs(value(u[i])) > 1e-5
+                solu[i] = value(u[i]);
                 for t in 1:T
-                    if abs(getvalue(w[i,t])) > 1e-5
-                        solw[i,t] = getvalue(w[i,t]);
+                    if abs(value(w[i,t])) > 1e-5
+                        solw[i,t] = value(w[i,t]);
                     else
                         solw[i,t] = 0;
                     end
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -173,8 +178,8 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
                 solu[i] = 0;
                 for t in 1:T
                     solw[i,t] = 0;
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -183,13 +188,13 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         end
         for i in fData.IDList
             for t in 1:T
-                if (abs(getvalue(lpp[i,t])) > 1e-8)|(abs(getvalue(lpm[i,t])) > 1e-8)
-                    solLp[i,t] = getvalue(lpp[i,t]) - getvalue(lpm[i,t]);
+                if (abs(value(lpp[i,t])) > 1e-8)|(abs(value(lpm[i,t])) > 1e-8)
+                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (abs(getvalue(lqp[i,t])) > 1e-8)|(abs(getvalue(lqm[i,t])) > 1e-8)
-                    solLq[i,t] = getvalue(lqp[i,t]) - getvalue(lqm[i,t]);
+                if (abs(value(lqp[i,t])) > 1e-8)|(abs(value(lqm[i,t])) > 1e-8)
+                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
                 end
@@ -244,9 +249,9 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     end
 
     if qpopt
-        mp = Model(solver = IpoptSolver(print_level = 0, linear_solver = "ma27"));
+        mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
     else
-        mp = Model(solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,Threads = 1));
+        mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end
 
     # set up the variables
@@ -300,8 +305,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2+q[k,t]^2 <= fData.rateA[k]^2);
         @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2+zq[i,t]^2 <= u[i]^2);
     else
-        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], norm([p[k,t],q[k,t]]) <= fData.rateA[k]);
-        @constraint(mp, bThermal[i in bData.IDList, t in td:T], norm([zp[i,t],zq[i,t]]) <= u[i]);
+        @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], [fData.rateA[k],p[k,t],q[k,t]] in SecondOrderCone());
+        @constraint(mp, bThermal[i in bData.IDList, t in td:T], [u[i],zp[i,t],zq[i,t]] in SecondOrderCone());
     end
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
@@ -348,7 +353,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
             fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
         @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
-            norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
+            [tAux1[i,t],tAux2[i,t],tAux3[i,t]] in SecondOrderCone());
         @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
             fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
     end
@@ -363,13 +368,18 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        statusMp = solve(mp);
+        optimize!(mp);
+        statusMp = termination_status(mp);
         if statusMp != :Optimal
-            mp.solver = GurobiSolver(GUROBI_ENV,OutputFlag = 0,NumericFocus = 3,Threads = 1);
-            statusMp = solve(mp);
+            set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
+                                                        "OutputFlag" => 0,
+                                                        "NumericFocus" => 3,
+                                                        "Threads" => 1));
+            optimize!(mp);
+            statusMp = termination_status(mp);
         end
         #optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
-        mpObj = getobjectivevalue(mp);
+        mpObj = objective_value(mp);
         println("Disruption time $(td), scenario $(ωd), solving status $(statusMp)");
         # obtain the solutions
         solSp = Dict();
@@ -381,29 +391,29 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         solzp = Dict();
         for i in fData.genIDList
             for t in td:T
-                if abs(getvalue(sp[i,t])) > 1e-5
-                    solSp[i,t] = getvalue(sp[i,t]);
+                if abs(value(sp[i,t])) > 1e-5
+                    solSp[i,t] = value(sp[i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if abs(getvalue(sq[i,t])) > 1e-5
-                    solSq[i,t] = getvalue(sq[i,t]);
+                if abs(value(sq[i,t])) > 1e-5
+                    solSq[i,t] = value(sq[i,t]);
                 else
                     solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if abs(getvalue(u[i])) > 1e-5
-                solu[i] = getvalue(u[i]);
+            if abs(value(u[i])) > 1e-5
+                solu[i] = value(u[i]);
                 for t in td:T
-                    if abs(getvalue(w[i,t])) > 1e-5
-                        solw[i,t] = getvalue(w[i,t]);
+                    if abs(value(w[i,t])) > 1e-5
+                        solw[i,t] = value(w[i,t]);
                     else
                         solw[i,t] = 0;
                     end
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -412,8 +422,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
                 solu[i] = 0;
                 for t in td:T
                     solw[i,t] = 0;
-                    if abs(getvalue(zp[i,t])) > 1e-6
-                        solzp[i,t] = getvalue(zp[i,t]);
+                    if abs(value(zp[i,t])) > 1e-6
+                        solzp[i,t] = value(zp[i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -422,13 +432,13 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         end
         for i in fData.IDList
             for t in td:T
-                if (abs(getvalue(lpp[i,t])) > 1e-8)|(abs(getvalue(lpm[i,t])) > 1e-8)
-                    solLp[i,t] = getvalue(lpp[i,t]) - getvalue(lpm[i,t]);
+                if (abs(value(lpp[i,t])) > 1e-8)|(abs(value(lpm[i,t])) > 1e-8)
+                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (abs(getvalue(lqp[i,t])) > 1e-8)|(abs(getvalue(lqm[i,t]))> 1e-8)
-                    solLq[i,t] = getvalue(lqp[i,t]) - getvalue(lqm[i,t]);
+                if (abs(value(lqp[i,t])) > 1e-8)|(abs(value(lqm[i,t]))> 1e-8)
+                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
                 else
                     solLq[i,t] = 0;
                 end

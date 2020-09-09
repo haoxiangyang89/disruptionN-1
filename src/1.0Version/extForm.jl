@@ -36,8 +36,8 @@
     sqDict = Dict();
     for i in fData.genIDList
         for t in (td - 1):T
-            spDict[i,t] = @variable(mExt, lowerbound = fData.Pmin[i],  upperbound = fData.Pmax[i], basename="sp_$(td)_$(i)_$(t)");
-            sqDict[i,t] = @variable(mExt, lowerbound = fData.Qmin[i],  upperbound = fData.Qmax[i], basename="sq_$(td)_$(i)_$(t)");
+            spDict[i,t] = @variable(mExt, lower_bound = fData.Pmin[i],  upper_bound = fData.Pmax[i], base_name="sp_$(td)_$(i)_$(t)");
+            sqDict[i,t] = @variable(mExt, lower_bound = fData.Qmin[i],  upper_bound = fData.Qmax[i], base_name="sq_$(td)_$(i)_$(t)");
         end
     end
     sphatsum = Dict();
@@ -78,27 +78,27 @@
     fsDict = Dict();
     for k in fData.brList
         for t in td:T
-            pDict[k,t] = @variable(mExt, basename="p_$(td)_$(k)_$(t)");
-            qDict[k,t] = @variable(mExt, basename="q_$(td)_$(k)_$(t)");
+            pDict[k,t] = @variable(mExt, base_name="p_$(td)_$(k)_$(t)");
+            qDict[k,t] = @variable(mExt, base_name="q_$(td)_$(k)_$(t)");
         end
     end
     for i in fData.IDList
         for t in td:T
-            vDict[i,t] = @variable(mExt, lowerbound = fData.Vmin[i]^2, upperbound = fData.Vmax[i]^2, basename="v_$td");
-            lppDict[i,t] = @variable(mExt, lowerbound = 0, basename="lpp_$(td)_$(i)_$(t)");
-            lqpDict[i,t] = @variable(mExt, lowerbound = 0, basename="lqp_$(td)_$(i)_$(t)");
-            lpmDict[i,t] = @variable(mExt, lowerbound = 0, basename="lpm_$(td)_$(i)_$(t)");
-            lqmDict[i,t] = @variable(mExt, lowerbound = 0, basename="lqm_$(td)_$(i)_$(t)");
+            vDict[i,t] = @variable(mExt, lower_bound = fData.Vmin[i]^2, upper_bound = fData.Vmax[i]^2, base_name="v_$td");
+            lppDict[i,t] = @variable(mExt, lower_bound = 0, base_name="lpp_$(td)_$(i)_$(t)");
+            lqpDict[i,t] = @variable(mExt, lower_bound = 0, base_name="lqp_$(td)_$(i)_$(t)");
+            lpmDict[i,t] = @variable(mExt, lower_bound = 0, base_name="lpm_$(td)_$(i)_$(t)");
+            lqmDict[i,t] = @variable(mExt, lower_bound = 0, base_name="lqm_$(td)_$(i)_$(t)");
         end
     end
     for i in bData.IDList
-        wDict[i,td - 1] = @variable(mExt, lowerbound = 0, upperbound = bData.cap[i], basename="w_$(td)_$(i)_$(td - 1)");
-        uDict[i] = @variable(mExt, lowerbound = 0, upperbound = bData.uCap[i], basename="u_$(td)_$(i)");
+        wDict[i,td - 1] = @variable(mExt, lower_bound = 0, upper_bound = bData.cap[i], base_name="w_$(td)_$(i)_$(td - 1)");
+        uDict[i] = @variable(mExt, lower_bound = 0, upper_bound = bData.uCap[i], base_name="u_$(td)_$(i)");
         for t in td:T
-            wDict[i,t] = @variable(mExt, lowerbound = 0, upperbound = bData.cap[i], basename="w_$(td)_$(i)_$(t)");
-            yDict[i,t] = @variable(mExt, basename="y_$(td)_$(i)_$(t)");
-            zpDict[i,t] = @variable(mExt, basename="zp_$(td)_$(i)_$(t)");
-            zqDict[i,t] = @variable(mExt, basename="zq_$(td)_$(i)_$(t)");
+            wDict[i,t] = @variable(mExt, lower_bound = 0, upper_bound = bData.cap[i], base_name="w_$(td)_$(i)_$(t)");
+            yDict[i,t] = @variable(mExt, base_name="y_$(td)_$(i)_$(t)");
+            zpDict[i,t] = @variable(mExt, base_name="zp_$(td)_$(i)_$(t)");
+            zqDict[i,t] = @variable(mExt, base_name="zq_$(td)_$(i)_$(t)");
         end
     end
 
@@ -132,7 +132,7 @@
             @constraint(mExt, qDict[k,t] == -qDict[(k[2],k[1],k[3]),t]);
             if Bparams[k,t] == 1
                 if coneBool
-                    @constraint(mExt, norm([pDict[k,t],qDict[k,t]]) <= fData.rateA[k]);
+                    @constraint(mExt, [fData.rateA[k], pDict[k,t], qDict[k,t]] in SecondOrderCone());
                 else
                     @constraint(mExt, pDict[k,t]^2 + qDict[k,t]^2 <= fData.rateA[k]^2);
                 end
@@ -151,7 +151,7 @@
         for t in td:T
             @constraint(mExt, wDict[i,t] == wDict[i,t - 1] - yDict[i,t]*Δt);
             if coneBool
-                @constraint(mExt, norm([zpDict[i,t],zqDict[i,t]]) <= uDict[i]);
+                @constraint(mExt, [uDict[i],zpDict[i,t],zqDict[i,t]] in SecondOrderCone());
             else
                 @constraint(mExt, zpDict[i,t]^2 + zqDict[i,t]^2 <= uDict[i]^2);
             end
@@ -164,7 +164,7 @@
 
     # recursion through the possible scenario
     tList = sort([t for t in keys(pDistr.tDistrn)]);
-    objExpr = getobjective(mExt);
+    objExpr = objective_value(mExt);
     if td == 1
         objExpr += sum(bData.cost[i]*uDict[i] for i in bData.IDList);
         # only the first pass will execute this
@@ -179,9 +179,9 @@
                         # add generator cost
                         if fData.cp[i].n == 3
                             if coneBool
-                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                fsDict[i,t] = @variable(mExt, lower_bound = 0, base_name = "fs_$(td)_$(i)_$(t)");
                                 dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
-                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                                @constraint(mExt, [fsDict[i,t] + 1/4,spDict[i,t],fsDict[i,t] - 1/4] in SecondOrderCone());
                             else
                                 dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
                             end
@@ -200,9 +200,9 @@
                         # add generator cost
                         if fData.cp[i].n == 3
                             if coneBool
-                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                fsDict[i,t] = @variable(mExt, lower_bound = 0, base_name = "fs_$(td)_$(i)_$(t)");
                                 dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
-                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                                @constraint(mExt, [fsDict[i,t] + 1/4, spDict[i,t], fsDict[i,t] - 1/4] in SecondOrderCone());
                             else
                                 dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
                             end
@@ -230,7 +230,7 @@
                     global mExt = extForm(td + tp, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr, coneBool);
                     # println("=========================",11," ",td," ",tp,"=========================");
                     # println(mExt.obj);
-                    objExpr = getobjective(mExt);
+                    objExpr = objective_value(mExt);
                 end
             end
         else
@@ -243,9 +243,9 @@
                         # add generator cost
                         if fData.cp[i].n == 3
                             if coneBool
-                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                fsDict[i,t] = @variable(mExt, lower_bound = 0, base_name = "fs_$(td)_$(i)_$(t)");
                                 dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
-                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                                @constraint(mExt, [fsDict[i,t] + 1/4, spDict[i,t],fsDict[i,t] - 1/4] in SecondOrderCone());
                             else
                                 dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
                             end
@@ -266,9 +266,9 @@
                         # add generator cost
                         if fData.cp[i].n == 3
                             if coneBool
-                                fsDict[i,t] = @variable(mExt, lowerbound = 0, basename = "fs_$(td)_$(i)_$(t)");
+                                fsDict[i,t] = @variable(mExt, lower_bound = 0, base_name = "fs_$(td)_$(i)_$(t)");
                                 dExpr += fData.cp[i].params[1]*fsDict[i,t] + fData.cp[i].params[2]*spDict[i,t];
-                                @constraint(mExt, norm([spDict[i,t],fsDict[i,t] - 1/4]) <= fsDict[i,t] + 1/4);
+                                @constraint(mExt, [fsDict[i,t] + 1/4, spDict[i,t], fsDict[i,t] - 1/4] in SecondOrderCone());
                             else
                                 dExpr += fData.cp[i].params[1]*(spDict[i,t]^2) + fData.cp[i].params[2]*spDict[i,t];
                             end
@@ -296,7 +296,7 @@
                     global mExt = extForm(td + tp + τ, ω, inheritData, baseProb*pDistr.tDistrn[tp]*pDistr.ωDistrn[ω], τ, Δt, T, fData, bData, dData, pDistr, coneBool);
                     # println("=========================",22," ",td," ",tp,"=========================");
                     # println(mExt.obj);
-                    objExpr = getobjective(mExt);
+                    objExpr = objective_value(mExt);
                 end
             end
         end
