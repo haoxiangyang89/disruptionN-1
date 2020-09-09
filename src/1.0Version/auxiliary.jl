@@ -12,7 +12,7 @@ function rand(s::CategoricalSamplerNew)
     s.category[rand(Categorical(s.mass))]
 end
 
-function genScenario(pDistr)
+function genScenario_old(pDistr)
     # generate a disruption time
     tSupport = [i for i in keys(pDistr.tDistrn)];
     tProb = [pDistr.tDistrn[i] for i in tSupport];
@@ -27,12 +27,33 @@ function genScenario(pDistr)
     return tSupport[t],ωSupport[ω];
 end
 
+function genScenario(pDistr,τ = nothing)
+    # generate a disruption time
+    tSupport = [i for i in keys(pDistr.tDistrn)];
+    tProb = [pDistr.tDistrn[i] for i in tSupport];
+    tDistrObj = Categorical(tProb);
+    t = rand(tDistrObj);
+
+    # generate a disruption location
+    ωSupport = [i for i in keys(pDistr.ωDistrn)];
+    ωProb = [pDistr.ωDistrn[i] for i in ωSupport];
+    ωDistrObj = Categorical(ωProb);
+    ω = rand(ωDistrObj);
+    if τ == nothing
+        return tSupport[t],ωSupport[ω][1], ωSupport[ω][2];
+    else
+        return tSupport[t],ωSupport[ω],τ;
+    end
+end
+
 function modifyOmega(pDistr,hardComp)
     ωDistrNew = Dict();
-    releaseProb = pDistr.ωDistrn[hardComp];
-    avgNo = length(values(pDistr.ωDistrn)) - 1;
+    for iHard in hardComp
+        releaseProb += pDistr.ωDistrn[iHard];
+    end
+    avgNo = length(values(pDistr.ωDistrn)) - length(hardComp);
     for i in keys(pDistr.ωDistrn)
-        if i != hardComp
+        if !(i in hardComp)
             # if it is not the hardened component
             ωDistrNew[i] = pDistr.ωDistrn[i] + releaseProb/avgNo;
         end
@@ -271,13 +292,13 @@ function simuPath(τ,T,pDistr)
     pathList = [];
     nowT = 1;
     while nowT <= T
-        tp,ωd = genScenario(pDistr);
+        tp,ωd,τω = genScenario(pDistr);
         push!(pathList, (tp,ωd));
         if nowT == 1
             nowT += tp;
             nowT = min(nowT, T + 1);
         else
-            nowT += tp + τ;
+            nowT += tp + τω;
             nowT = min(nowT, T + 1);
         end
     end

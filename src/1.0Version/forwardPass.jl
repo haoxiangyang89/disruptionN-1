@@ -452,7 +452,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     end
 end
 
-function constructForwardM(td, ωd, sol, τ, Δt, T, qpopt = false, hardenend = [])
+function constructForwardM(td, ωd, sol, Δt, T, τ = nothing, qpopt = false, hardenend = [])
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
@@ -464,9 +464,10 @@ function constructForwardM(td, ωd, sol, τ, Δt, T, qpopt = false, hardenend = 
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
+function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
+    τω = τ;
     costn = 0;
     solHist = [];
     currentLB = 0;
@@ -475,14 +476,24 @@ function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, qpopt, hardened);
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, τω, Δt, T, qpopt, hardened);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
         if pathList == []
-            tp,ωd = genScenario(pDistr);
+            tp,ωd,τω = genScenario(pDistr);
+            if τ != nothing
+                τω = τ;
+            end
         else
-            tp,ωd = pathList[iter];
+            if length(pathList[iter]) == 2
+                tp,ωd = pathList[iter];
+            else
+                tp,ωd,τω = pathList[iter];
+                if τ != nothing
+                    τω = τ;
+                end
+            end
         end
         iter += 1;
         if nowT == 1
@@ -493,7 +504,7 @@ function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
             costn += sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
             costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         else
-            disT += tp + τ;
+            disT += tp + τω;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
             costn = calCostF(costn, currentSol, T, fData, nowT, disT);

@@ -378,24 +378,35 @@ function constructDetM(td, ωd, sol, τ, Δt, T, fData, bData, dData)
     return sol,objV;
 end
 
-function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathList = [])
+function buildPathDet(T, Δt, fData, bData, dData, pDistr, τ = nothing, pathList = [])
     disT = 1;
     ωd = 0;
     costn = 0;
     iter = 1;
     solHist = [];
+    τω = τ;
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructDetM(disT, ωd, currentSol, τ, Δt, T, fData, bData, dData);
+        currentSol,objV = constructDetM(disT, ωd, currentSol, τω, Δt, T, fData, bData, dData);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
         if pathList == []
-            tp,ωd = genScenario(pDistr);
+            tp,ωd,τω = genScenario(pDistr);
+            if τ != nothing
+                τω = τ;
+            end
         else
-            tp,ωd = pathList[iter];
+            if length(pathList[iter]) == 2
+                tp,ωd = pathList[iter];
+            else
+                tp,ωd,τω = pathList[iter];
+                if τ != nothing
+                    τω = τ;
+                end
+            end
         end
         iter += 1;
         if nowT == 1
@@ -406,7 +417,7 @@ function buildPathDet(τ, T, Δt, fData, bData, dData, pDistr, pathList = [])
                 sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
             costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         else
-            disT += tp + τ;
+            disT += tp + τω;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
             costn += sum(sum(fData.cz*(abs(currentSol.lp[i,t]) + abs(currentSol.lq[i,t])) for i in fData.IDList) for t in nowT:(disT - 1));
