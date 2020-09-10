@@ -126,7 +126,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         optimize!(mp);
         statusMp = termination_status(mp);
-        if statusMp != :Optimal
+        if statusMp != MOI.OPTIMAL
             set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
                                                         "OutputFlag" => 0,
                                                         "NumericFocus" => 3,
@@ -370,7 +370,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
         optimize!(mp);
         statusMp = termination_status(mp);
-        if statusMp != :Optimal
+        if statusMp != MOI.OPTIMAL
             set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
                                                         "OutputFlag" => 0,
                                                         "NumericFocus" => 3,
@@ -476,7 +476,7 @@ function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened 
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τω, Δt, T, qpopt, hardened);
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, Δt, T, τω, qpopt, hardened);
         push!(solHist,(currentSol,nowT,ωd));
 
         # generate disruption
