@@ -497,7 +497,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     #     norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
 end
 
-function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, qpopt = false, hardened = [])
+function constructBackwardM(td, T, Δt, trialPaths, matchedTrial, τ = nothing, qpopt = false, hardened = [])
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
@@ -519,7 +519,7 @@ function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, qpopt = fa
     # return cutDict;
 end
 
-function exeBackward(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
+function exeBackward(T, Δt, trialPaths, τ = nothing, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts (preset in every core)

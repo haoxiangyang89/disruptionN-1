@@ -481,10 +481,7 @@ function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened 
 
         # generate disruption
         if pathList == []
-            tp,ωd,τω = genScenario(pDistr);
-            if τ != nothing
-                τω = τ;
-            end
+            tp,ωd,τω = genScenario(pDistr,τ);
         else
             if length(pathList[iter]) == 2
                 tp,ωd = pathList[iter];
@@ -514,7 +511,7 @@ function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened 
     return [solHist,currentLB,costn];
 end
 
-function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = [])
+function exeForward(T, Δt, N, τ = nothing, qpopt = false, pathDict = Dict(), hardened = [])
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -534,7 +531,7 @@ function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = 
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, τ, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
@@ -563,7 +560,7 @@ function exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt = false, hardened = [])
             genCutsCount[pathTimeList[i][j]] += 1;
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, τ, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
@@ -582,7 +579,7 @@ function exeForward_last(τ, T, Δt, N, qpopt = false, hardened = [])
     objV = 0;
     currentLB = 0;
     pathDict,pathTimeList = pathSimu_cover_last(N, τ, T, pDistr);
-    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, τ, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];

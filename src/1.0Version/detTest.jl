@@ -26,7 +26,7 @@ for ci in 1:length(caseList)
 
         # select a preset pathDict
         pathDict = pathDictA[T];
-        solDet,costDet = exeDet(τ, T, Δt, fData, bData, dData, pDistr, NN, pathDict);
+        solDet,costDet = exeDet(T, Δt, fData, bData, dData, pDistr, NN, τ, pathDict);
         listDet = [costDet[i] for i in 1:NN];
         meanDet = mean(listDet);
         sigmaDet = std(listDet);

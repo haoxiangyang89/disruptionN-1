@@ -733,6 +733,25 @@ function readInData(i,caseList,T,cz = 1e4,λD = 0)
     end
 end
 
+function readInData_tau(i,caseList,T,cz = 1e4,λD = 0)
+    fileAdd = "case$(caseList[i])_ieee.m";
+    global fData = readStatic(fileAdd,cz);
+    disAddt = "testProbReadt_$(caseList[i]).csv";
+    disAddo = "testProbReado_$(caseList[i])_tau.csv";
+    global pDistr = readDisruption(disAddt,disAddo,"csv");
+    pAdd = "testDataP_$(caseList[i]).csv";
+    qAdd = "testDataQ_$(caseList[i]).csv";
+    global dData = readDemand(pAdd,qAdd,"csv");
+    bAdd = "testDataB_$(caseList[i]).csv";
+    global bData = readBattery(bAdd,"csv",fData.baseMVA);
+
+    if λD == 0
+        global pDistr = modifyT(pDistr,4/T,T);
+    else
+        global pDistr = modifyT(pDistr,λD,T);
+    end
+end
+
 function readInData_old(T,ωSet,cz = 500,λD = 1/2)
     fileAdd = "case13_ieee_old.m";
     global fData = readStatic(fileAdd,cz);
