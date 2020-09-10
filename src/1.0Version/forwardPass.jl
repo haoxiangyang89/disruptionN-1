@@ -477,7 +477,7 @@ function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened 
         # solve the current stage problem, state variables are passed
         nowT = disT;
         currentSol,objV = constructForwardM(disT, ωd, currentSol, Δt, T, τω, qpopt, hardened);
-        push!(solHist,(currentSol,nowT,ωd));
+        push!(solHist,(currentSol,nowT,ωd,τω));
 
         # generate disruption
         if pathList == []
@@ -540,7 +540,7 @@ function exeForward(T, Δt, N, τ = nothing, qpopt = false, pathDict = Dict(), h
     return solDict, currentLB, costDict;
 end
 
-function exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt = false, hardened = [])
+function exeForward_simuOpt(T, Δt, N, iterNo, τ = nothing, qpopt = false, hardened = [])
     # execution of forward pass, with samples selected to cover more time
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)

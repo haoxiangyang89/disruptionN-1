@@ -288,12 +288,12 @@ function calDualC(td, τ, T, fData, pDistr)
     return fDict,lDict,θDict;
 end
 
-function simuPath(τ,T,pDistr)
+function simuPath(T,pDistr,τ = nothing)
     pathList = [];
     nowT = 1;
     while nowT <= T
-        tp,ωd,τω = genScenario(pDistr);
-        push!(pathList, (tp,ωd));
+        tp,ωd,τω = genScenario(pDistr,τ);
+        push!(pathList, (tp,ωd,τω));
         if nowT == 1
             nowT += tp;
             nowT = min(nowT, T + 1);
@@ -310,7 +310,7 @@ function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
     pathSet = [];
     pathTimeList = [];
     for i in 1:(10*N)
-        pathList = simuPath(τ,T,pDistr);
+        pathList = simuPath(T,pDistr,τ);
         push!(pathSet,pathList);
         pathTimes = [];
         tNow = 1;
@@ -318,7 +318,7 @@ function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
             if tNow == 1
                 tNow += pathList[j][1];
             else
-                tNow += τ + pathList[j][1];
+                tNow += pathList[j][3] + pathList[j][1];
             end
             if tNow < T
                 push!(pathTimes, tNow);
@@ -352,7 +352,7 @@ function pathSimu_cover_last(N,τ,T,pDistr)
     pathTimeList = [];
     selNo = 0;
     while selNo < N
-        pathList = simuPath(τ,T,pDistr);
+        pathList = simuPath(T,pDistr,τ);
         pathTimes = [];
         tNow = 1;
         τList = false;
@@ -360,11 +360,11 @@ function pathSimu_cover_last(N,τ,T,pDistr)
             if tNow == 1
                 tNow += pathList[j][1];
             else
-                tNow += τ + pathList[j][1];
+                tNow += pathList[j][3] + pathList[j][1];
             end
             if tNow < T
                 push!(pathTimes, tNow);
-                if tNow >= T - τ
+                if tNow >= T - pathList[j][3]
                     τList = true;
                 end
             end

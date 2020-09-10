@@ -1,6 +1,6 @@
 # main program structure construction
 
-function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
+function solveMain(T, Δt, N, τ = nothing, allGen = false, qpopt = false, iterMin = 100,
     iterMax = 1000, cutDict = Dict(), ubGen = false, ubM = 200, hardened = [], simuRule = 0, simuSample = Dict())
     # readin data and execute the SDDP algorithm
 
@@ -25,17 +25,17 @@ function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
         iterStart = time();
         if simuRule == 0
             if simuSample == Dict()
-                trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, Dict(), hardened);
+                trialPaths,currentLB,currentUBDict = exeForward(T, Δt, N, τ, qpopt, Dict(), hardened);
             else
                 pathIter = Dict();
                 for sNo in 1:N
                     pathIter[sNo] = simuSample[sampleCounter+sNo];
                 end
-                trialPaths,currentLB,currentUBDict = exeForward(τ, T, Δt, N, qpopt, pathIter, hardened);
+                trialPaths,currentLB,currentUBDict = exeForward(T, Δt, N, τ, qpopt, pathIter, hardened);
                 sampleCounter += N;
             end
         else
-            trialPaths,currentLB,currentUBDict = exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt, hardened);
+            trialPaths,currentLB,currentUBDict = exeForward_simuOpt(T, Δt, N, iterNo, τ, qpopt, hardened);
         end
         push!(LBHist,currentLB);
 
@@ -43,7 +43,7 @@ function solveMain(τ, T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
         if !(ubGen)
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
         else
-            trialPathsUB,currentLBUB,currentUBDict = exeForward(τ, T, Δt, ubM, qpopt, Dict(), hardened);
+            trialPathsUB,currentLBUB,currentUBDict = exeForward(T, Δt, τ, ubM, qpopt, Dict(), hardened);
             currentUBList = [currentUBDict[ubkey] for ubkey in keys(currentUBDict)];
         end
         push!(UBHist,mean(currentUBList));
