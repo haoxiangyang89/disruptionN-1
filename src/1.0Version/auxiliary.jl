@@ -460,5 +460,5 @@ function addTau(pathDict,τ)
         end
         newpathDict[i] = newPath;
     end
-    return newpathDict[i];
+    return newpathDict;
 end

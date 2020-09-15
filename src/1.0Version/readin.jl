@@ -723,7 +723,7 @@ function readInData(i,caseList,T,τ,cz = 1e4,λD = 0)
     global fData = readStatic(fileAdd,cz);
     disAddt = "testProbReadt_$(caseList[i]).csv";
     disAddo = "testProbReado_$(caseList[i]).csv";
-    global pDistr = readDisruption(disAddt,disAddo,"csv");
+    global pDistr = readDisruption(disAddt,disAddo,"csv",τ);
     pAdd = "testDataP_$(caseList[i]).csv";
     qAdd = "testDataQ_$(caseList[i]).csv";
     global dData = readDemand(pAdd,qAdd,"csv");

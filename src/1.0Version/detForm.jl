@@ -384,7 +384,7 @@ function buildPathDet(T, Δt, fData, bData, dData, pDistr, pathList = [])
     costn = 0;
     iter = 1;
     solHist = [];
-    τω = τ;
+    τω = 0;
     currentSol = solData(Dict(),Dict(),Dict(),Dict(),Dict(),Dict(),Dict());
     while disT <= T
         # solve the current stage problem, state variables are passed
@@ -394,7 +394,7 @@ function buildPathDet(T, Δt, fData, bData, dData, pDistr, pathList = [])
 
         # generate disruption
         if pathList == []
-            tp,ωd,τω = genScenario(pDistr,τ);
+            tp,ωd,τω = genScenario(pDistr);
         else
             tp,ωd,τω = pathList[iter];
         end

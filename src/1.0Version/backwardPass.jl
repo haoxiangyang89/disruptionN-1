@@ -191,7 +191,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
     end
 end
 
-function dfBuild_D(td, ωd, currentPath, Δt, T, qpopt = false, solveOpt = true, hardened = [])
+function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
     # trying to find the previous solution that can be used for this td
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
@@ -502,7 +502,7 @@ function constructBackwardM(td, T, Δt, trialPaths, matchedTrial, qpopt = false,
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], Δt, T, qpopt, true, hardened), paraSet);
+    cutCurrentData = pmap(item -> dfBuild_D(td, item[1][1], trialPaths[item[2]], item[1][2], Δt, T, qpopt, true, hardened), paraSet);
     for j in procs()
         remotecall_fetch(cutUpdate,j,td,Ω,paraSet,cutCurrentData);
     end
@@ -560,7 +560,7 @@ function exeBackward_last(T, Δt, trialPaths, qpopt = false, hardened = [])
         matchedTrial = [];
         possiblePath = [];
         for n in keys(trialPaths)
-            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3],trialPaths[n][i][4]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
             if t in tpDict[n]
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
@@ -569,7 +569,7 @@ function exeBackward_last(T, Δt, trialPaths, qpopt = false, hardened = [])
             end
         end
         if possiblePath != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+            constructBackwardM(t, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end
@@ -583,9 +583,13 @@ function exeBackwardAll(T, Δt, trialPaths, qpopt = false, hardened = [])
     tpDict = Dict();
     for n in keys(trialPaths)
         possibleTList = [t for t in 1:T];
-        for t in [trialPaths[n][i][2] for i in 2:length(trialPaths[n])]
-            for tp in 1:τ
-                deleteat!(possibleTList,findfirst(possibleTList,t+tp));
+        for i in 2:length(trialPaths[n])
+            t = trialPaths[n][i][2];
+            for tp in 1:trialPaths[n][i][4]
+                delInd = findfirst(x -> x == t+tp, possibleTList);
+                if delInd != nothing
+                    deleteat!(possibleTList,delInd);
+                end
             end
         end
         tpDict[n] = possibleTList;
@@ -595,7 +599,7 @@ function exeBackwardAll(T, Δt, trialPaths, qpopt = false, hardened = [])
         matchedTrial = [];
         for n in keys(trialPaths)
             if t in tpDict[n]
-                pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+                pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3],trialPaths[n][i][4]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
                     push!(possiblePath,pathTemp);
@@ -603,7 +607,7 @@ function exeBackwardAll(T, Δt, trialPaths, qpopt = false, hardened = [])
             end
         end
         if possiblePath != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+            constructBackwardM(t, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end

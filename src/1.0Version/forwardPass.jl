@@ -467,7 +467,7 @@ end
 function buildPath(T, Δt, qpopt = false, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
-    τω = τ;
+    τω = 0;
     costn = 0;
     solHist = [];
     currentLB = 0;
@@ -484,9 +484,6 @@ function buildPath(T, Δt, qpopt = false, pathList = [], hardened = [])
             tp,ωd,τω = genScenario(pDistr);
         else
             tp,ωd,τω = pathList[iter];
-            if τ != nothing
-                τω = τ;
-            end
         end
         iter += 1;
         if nowT == 1
