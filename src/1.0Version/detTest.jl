@@ -20,12 +20,13 @@ for ci in 1:length(caseList)
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
-            remotecall_fetch(readInData,j,ci,caseList,T);
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
             #remotecall_fetch(readInData_old,j,T,ωSet0,10000,0);
         end
 
         # select a preset pathDict
         pathDict = pathDictA[T];
+        pathDict = addTau(pathDict,τ);
         solDet,costDet = exeDet(T, Δt, fData, bData, dData, pDistr, NN, τ, pathDict);
         listDet = [costDet[i] for i in 1:NN];
         meanDet = mean(listDet);
@@ -38,7 +39,7 @@ for ci in 1:length(caseList)
         # train the stochastic programming strategy
         cutDictPG = preGen(τ, T, Δt, N, iterMax);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG);
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, τ, false, false,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
         for j in procs()
             remotecall_fetch(cutIni,j,cutDict);

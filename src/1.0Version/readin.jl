@@ -588,7 +588,7 @@ function readStatic(fileName::String, cz = 1e7)
     return fData;
 end
 
-function readDisruption(tfileName,ofileName,fileType)
+function readDisruption(tfileName,ofileName,fileType,τ = nothing)
     # read in the disruption data: disruption time distribution
     if fileType == "csv"
         # csv file format:
@@ -612,18 +612,22 @@ function readDisruption(tfileName,ofileName,fileType)
             if ',' in lineStr
                 # parse the line
                 startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
-                if no == 2
+                if (no == 2)&&(τ == nothing)
                     ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[oInd,2];
-                elseif no == 3
+                elseif (no == 3)
                     ωDistrn[(parse(Int64,startN),parse(Int64,endN)),dataOme[oInd,3]] = dataOme[oInd,2];
+                elseif (τ != nothing)
+                    ωDistrn[(parse(Int64,startN),parse(Int64,endN)),τ] = dataOme[oInd,2];
                 end
             else
                 # parse the node
                 disN = lineStr;
-                if no == 2
+                if (no == 2)&&(τ == nothing)
                     ωDistrn[disN] = dataOme[oInd,2];
                 elseif no == 3
-                    ωDistrn[(disN,dataOme[oInd,3])] = dataOme[oInd,2];
+                    ωDistrn[disN,dataOme[oInd,3]] = dataOme[oInd,2];
+                elseif (τ != nothing)
+                    ωDistrn[disN,τ] = dataOme[oInd,2];
                 end
             end
         end
@@ -714,7 +718,7 @@ function readDemand(fileNameP, fileNameQ, fileType)
     end
 end
 
-function readInData(i,caseList,T,cz = 1e4,λD = 0)
+function readInData(i,caseList,T,τ,cz = 1e4,λD = 0)
     fileAdd = "case$(caseList[i])_ieee.m";
     global fData = readStatic(fileAdd,cz);
     disAddt = "testProbReadt_$(caseList[i]).csv";

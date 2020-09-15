@@ -452,7 +452,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     end
 end
 
-function constructForwardM(td, ωd, sol, Δt, T, τ = nothing, qpopt = false, hardenend = [])
+function constructForwardM(td, ωd, sol, Δt, T, τ, qpopt = false, hardenend = [])
     # construct the math program given the state variables and current stage
     if td == 1
         # if it is the no-disruption problem
@@ -464,7 +464,7 @@ function constructForwardM(td, ωd, sol, Δt, T, τ = nothing, qpopt = false, ha
     return sol,objV;
 end
 
-function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened = [])
+function buildPath(T, Δt, qpopt = false, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
     τω = τ;
@@ -481,15 +481,11 @@ function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened 
 
         # generate disruption
         if pathList == []
-            tp,ωd,τω = genScenario(pDistr,τ);
+            tp,ωd,τω = genScenario(pDistr);
         else
-            if length(pathList[iter]) == 2
-                tp,ωd = pathList[iter];
-            else
-                tp,ωd,τω = pathList[iter];
-                if τ != nothing
-                    τω = τ;
-                end
+            tp,ωd,τω = pathList[iter];
+            if τ != nothing
+                τω = τ;
             end
         end
         iter += 1;
@@ -511,7 +507,7 @@ function buildPath(T, Δt, τ = nothing, qpopt = false, pathList = [], hardened 
     return [solHist,currentLB,costn];
 end
 
-function exeForward(T, Δt, N, τ = nothing, qpopt = false, pathDict = Dict(), hardened = [])
+function exeForward(T, Δt, N, qpopt = false, pathDict = Dict(), hardened = [])
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -531,7 +527,7 @@ function exeForward(T, Δt, N, τ = nothing, qpopt = false, pathDict = Dict(), h
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPath(T, Δt, τ, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
@@ -540,7 +536,7 @@ function exeForward(T, Δt, N, τ = nothing, qpopt = false, pathDict = Dict(), h
     return solDict, currentLB, costDict;
 end
 
-function exeForward_simuOpt(T, Δt, N, iterNo, τ = nothing, qpopt = false, hardened = [])
+function exeForward_simuOpt(T, Δt, N, iterNo, qpopt = false, hardened = [])
     # execution of forward pass, with samples selected to cover more time
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -553,14 +549,14 @@ function exeForward_simuOpt(T, Δt, N, iterNo, τ = nothing, qpopt = false, hard
     for t in 2:T
         genCutsCount[t] = 0;
     end
-    pathDict,pathTimeList = pathSimu_cover(N, τ, T, pDistr, genCutsCount, iterNo);
+    pathDict,pathTimeList = pathSimu_cover(N, T, pDistr, genCutsCount, iterNo);
     for i in 1:N
         # update genCutsCount
         for j in 1:length(pathTimeList[i])
             genCutsCount[pathTimeList[i][j]] += 1;
         end
     end
-    returnData = pmap(i -> buildPath(T, Δt, τ, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
@@ -569,7 +565,7 @@ function exeForward_simuOpt(T, Δt, N, iterNo, τ = nothing, qpopt = false, hard
     return solDict, currentLB, costDict;
 end
 
-function exeForward_last(τ, T, Δt, N, qpopt = false, hardened = [])
+function exeForward_last(T, Δt, N, qpopt = false, hardened = [])
     # execution of forward pass, with samples selected to cover more time
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -578,8 +574,8 @@ function exeForward_last(τ, T, Δt, N, qpopt = false, hardened = [])
     costDict = Dict();
     objV = 0;
     currentLB = 0;
-    pathDict,pathTimeList = pathSimu_cover_last(N, τ, T, pDistr);
-    returnData = pmap(i -> buildPath(T, Δt, τ, qpopt, pathDict[i], hardened), 1:N);
+    pathDict,pathTimeList = pathSimu_cover_last(N, T, pDistr);
+    returnData = pmap(i -> buildPath(T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];

@@ -27,7 +27,7 @@ function genScenario_old(pDistr)
     return tSupport[t],ωSupport[ω];
 end
 
-function genScenario(pDistr,τ = nothing)
+function genScenario(pDistr)
     # generate a disruption time
     tSupport = [i for i in keys(pDistr.tDistrn)];
     tProb = [pDistr.tDistrn[i] for i in tSupport];
@@ -39,11 +39,7 @@ function genScenario(pDistr,τ = nothing)
     ωProb = [pDistr.ωDistrn[i] for i in ωSupport];
     ωDistrObj = Categorical(ωProb);
     ω = rand(ωDistrObj);
-    if τ == nothing
-        return tSupport[t],ωSupport[ω][1], ωSupport[ω][2];
-    else
-        return tSupport[t],ωSupport[ω],τ;
-    end
+    return tSupport[t],ωSupport[ω][1], ωSupport[ω][2];
 end
 
 function modifyOmega(pDistr,hardComp)
@@ -288,11 +284,11 @@ function calDualC(td, τ, T, fData, pDistr)
     return fDict,lDict,θDict;
 end
 
-function simuPath(T,pDistr,τ = nothing)
+function simuPath(T,pDistr)
     pathList = [];
     nowT = 1;
     while nowT <= T
-        tp,ωd,τω = genScenario(pDistr,τ);
+        tp,ωd,τω = genScenario(pDistr);
         push!(pathList, (tp,ωd,τω));
         if nowT == 1
             nowT += tp;
@@ -305,12 +301,12 @@ function simuPath(T,pDistr,τ = nothing)
     return pathList;
 end
 
-function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
+function pathSimu_cover(N,T,pDistr,genCutsCount,iterNo)
     # maximize the coverage from the sample
     pathSet = [];
     pathTimeList = [];
     for i in 1:(10*N)
-        pathList = simuPath(T,pDistr,τ);
+        pathList = simuPath(T,pDistr);
         push!(pathSet,pathList);
         pathTimes = [];
         tNow = 1;
@@ -452,4 +448,17 @@ function breakComponent(fDatal, bItem, bType)
         fDataLocal.brList = lineListTemp;
     end
     global fData = fDataLocal;
+end
+
+# Add τ to the last element of pathDict
+function addTau(pathDict,τ)
+    newpathDict = Dict();
+    for i in keys(pathDict)
+        newPath = [];
+        for item in pathDict[i]
+            push!(newPath,(item[1],item[2],τ));
+        end
+        newpathDict[i] = newPath;
+    end
+    return newpathDict[i];
 end

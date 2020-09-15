@@ -191,7 +191,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
     end
 end
 
-function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
+function dfBuild_D(td, ωd, currentPath, Δt, T, qpopt = false, solveOpt = true, hardened = [])
     # trying to find the previous solution that can be used for this td
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
@@ -497,12 +497,12 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     #     norm([tAux2[i,t],tAux3[i,t]]) <= tAux1[i,t]);
 end
 
-function constructBackwardM(td, T, Δt, trialPaths, matchedTrial, τ = nothing, qpopt = false, hardened = [])
+function constructBackwardM(td, T, Δt, trialPaths, matchedTrial, qpopt = false, hardened = [])
     # construct the math program given the state variables and current stage
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, qpopt, true, hardened), paraSet);
+    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], Δt, T, qpopt, true, hardened), paraSet);
     for j in procs()
         remotecall_fetch(cutUpdate,j,td,Ω,paraSet,cutCurrentData);
     end
@@ -519,7 +519,7 @@ function constructBackwardM(td, T, Δt, trialPaths, matchedTrial, τ = nothing, 
     # return cutDict;
 end
 
-function exeBackward(T, Δt, trialPaths, τ = nothing, qpopt = false, hardened = [])
+function exeBackward(T, Δt, trialPaths, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts (preset in every core)
@@ -532,7 +532,7 @@ function exeBackward(T, Δt, trialPaths, τ = nothing, qpopt = false, hardened =
         matchedTrial = [];
         possiblePath = [];
         for n in keys(trialPaths)
-            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3],trialPaths[n][i][4]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
             if t in tpDict[n]
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
@@ -540,14 +540,14 @@ function exeBackward(T, Δt, trialPaths, τ = nothing, qpopt = false, hardened =
                 end
             end
         end
-        if trialPaths != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+        if possiblePath != []
+            constructBackwardM(t, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end
 end
 
-function exeBackward_last(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
+function exeBackward_last(T, Δt, trialPaths, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts (preset in every core)
@@ -568,14 +568,14 @@ function exeBackward_last(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
                 end
             end
         end
-        if trialPaths != []
+        if possiblePath != []
             constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end
 end
 
-function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
+function exeBackwardAll(T, Δt, trialPaths, qpopt = false, hardened = [])
     # execution of forward pass
     # input: trialPaths: the collection of trial points
     #        cutDict: previously generated cuts (preset in every core)
@@ -602,7 +602,7 @@ function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
                 end
             end
         end
-        if trialPaths != []
+        if possiblePath != []
             constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");

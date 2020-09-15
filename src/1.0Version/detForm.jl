@@ -378,7 +378,7 @@ function constructDetM(td, ωd, sol, τ, Δt, T, fData, bData, dData)
     return sol,objV;
 end
 
-function buildPathDet(T, Δt, fData, bData, dData, pDistr, τ = nothing, pathList = [])
+function buildPathDet(T, Δt, fData, bData, dData, pDistr, pathList = [])
     disT = 1;
     ωd = 0;
     costn = 0;
@@ -396,14 +396,7 @@ function buildPathDet(T, Δt, fData, bData, dData, pDistr, τ = nothing, pathLis
         if pathList == []
             tp,ωd,τω = genScenario(pDistr,τ);
         else
-            if length(pathList[iter]) == 2
-                tp,ωd = pathList[iter];
-            else
-                tp,ωd,τω = pathList[iter];
-                if τ != nothing
-                    τω = τ;
-                end
-            end
+            tp,ωd,τω = pathList[iter];
         end
         iter += 1;
         if nowT == 1
@@ -425,7 +418,7 @@ function buildPathDet(T, Δt, fData, bData, dData, pDistr, τ = nothing, pathLis
     return [solHist,costn];
 end
 
-function exeDet(T, Δt, fData, bData, dData, pDistr, N, τ = nothing, pathDict = Dict())
+function exeDet(T, Δt, fData, bData, dData, pDistr, N, pathDict = Dict())
     # execution of forward pass
     # input: N: the number of trial points;
     # output: solList: a list of solution paths
@@ -436,7 +429,7 @@ function exeDet(T, Δt, fData, bData, dData, pDistr, N, τ = nothing, pathDict =
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPathDet(T, Δt, fData, bData, dData, pDistr, τ, pathDict[i]), 1:N);
+    returnData = pmap(i -> buildPathDet(T, Δt, fData, bData, dData, pDistr, pathDict[i]), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][2];
