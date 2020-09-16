@@ -208,7 +208,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
                 if ωd in hardened
                     Bparams[k,t] = 1;
                 else
@@ -219,7 +219,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
             end
         end
         for i in fData.genIDList
-            if (i == ωd)&(t <= td + τ)
+            if (i in ωd)&&(t <= td + τ)
                 if i in hardened
                     Bparams[i,t] = 1;
                 else
@@ -262,7 +262,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         for ω in Ω
             if (tp,ω) in keys(cutDict)
                 for l in 1:length(cutDict[tp,ω])
-                    λcuts[tp,ω,l] = @variable(dp, upperbound = 0);
+                    λcuts[tp,ω,l] = @variable(dp, upper_bound = 0);
                     push!(spCuts[tp - 1],(tp,ω,l));
                     push!(wCuts[tp - 1],(tp,ω,l));
                 end

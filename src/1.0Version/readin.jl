@@ -606,38 +606,39 @@ function readDisruption(tfileName,ofileName,fileType,τ = nothing)
         # detect the dimension of Ω
         dataOme = readdlm(ofileName, ',');
         ωDistrn = Dict();
+        ωDict = Dict();
+        ωτ = Dict();
         mo,no = size(dataOme);
         for oInd in 1:mo
-            lineStr = dataOme[oInd,1];
-            if ',' in lineStr
-                # parse the line
-                startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
-                if (no == 2)&&(τ == nothing)
-                    ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[oInd,2];
-                elseif (no == 3)
-                    ωDistrn[(parse(Int64,startN),parse(Int64,endN)),dataOme[oInd,3]] = dataOme[oInd,2];
-                elseif (τ != nothing)
-                    ωDistrn[(parse(Int64,startN),parse(Int64,endN)),τ] = dataOme[oInd,2];
-                end
+            scenInd = dataOme[oInd,1];
+            ωDistrn[scenInd] = dataOme[oInd,2];
+            ωDict[scenInd] = [];
+            if τ == nothing
+                τr = dataOme[oInd,3];
             else
-                # parse the node
-                disN = lineStr;
-                if (no == 2)&&(τ == nothing)
-                    ωDistrn[disN] = dataOme[oInd,2];
-                elseif no == 3
-                    ωDistrn[disN,dataOme[oInd,3]] = dataOme[oInd,2];
-                elseif (τ != nothing)
-                    ωDistrn[disN,τ] = dataOme[oInd,2];
+                τr = τ;
+            end
+            ωτ[scenInd] = τr;
+            for noInd in 4:no
+                lineStr = dataOme[oInd,noInd];
+                if ',' in lineStr
+                    # parse the line
+                    startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
+                    push!(ωDict[scenInd],(parse(Int64,startN),parse(Int64,endN)));
+                elseif !(lineStr == "")
+                    # parse the node
+                    disN = lineStr;
+                    push!(ωDict[scenInd],disN);
                 end
             end
         end
         if sum(values(ωDistrn)) == 1
-            pDistr = probDistrn(tDistrn,ωDistrn);
+            pDistr = probDistrn(tDistrn,ωDistrn,ωDict,ωτ);
             return pDistr;
         else
             ωList = [item for item in keys(ωDistrn)];
             ωDistrn[ωList[1]] = 1 - sum([ωDistrn[item] for item in keys(ωDistrn) if item != ωList[1]]);
-            pDistr = probDistrn(tDistrn,ωDistrn);
+            pDistr = probDistrn(tDistrn,ωDistrn,ωDict,ωτ);
             return pDistr;
         end
     else

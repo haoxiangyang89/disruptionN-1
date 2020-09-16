@@ -180,14 +180,14 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
                 Bparams[k,t] = 0;
             else
                 Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
-            if (i == ωd)&(t <= td + τ)
+            if (i in ωd)&(t <= td + τ)
                 Bparams[i,t] = 0;
             else
                 Bparams[i,t] = 1;

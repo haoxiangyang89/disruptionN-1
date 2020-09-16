@@ -65,7 +65,11 @@ struct probDistrn
     tDistrn :: Dict{Int64,Any}
 
     # probability distribution of disruption magnitude
+    # ωDistrn: keys are the indices, values are probability
+    # ωDict: keys are the indices, values are lists of broken components
     ωDistrn :: Dict{Any,Any}
+    ωDict :: Dict{Any,Any}
+    ωτ :: Dict{Any,Any}
 end
 
 mutable struct batteryData

@@ -37,7 +37,7 @@ for ci in 1:length(caseList)
         detOut[T] = [costDet,listDet,meanDet,sigmaDet];
 
         # train the stochastic programming strategy
-        cutDictPG = preGen(τ, T, Δt, N, iterMax);
+        cutDictPG = preGen(T, Δt, N, iterMax);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG);
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
@@ -45,7 +45,7 @@ for ci in 1:length(caseList)
             remotecall_fetch(cutIni,j,cutDict);
         end
 
-        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDict);
+        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDict);
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);

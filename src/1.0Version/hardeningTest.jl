@@ -61,28 +61,31 @@ for ci in 1:length(caseList)
 
     dataList = Dict();
     τ = Int64(1/6*T);
+    pathDict = addTau(pathDict,τ);
+    pathDictTest = addTau(pathDictTest,τ);
+
     for j in procs()
-        remotecall_fetch(readInData,j,ci,caseList,T,1e4);
+        remotecall_fetch(readInData,j,ci,caseList,T,τ,1e4);
         #remotecall_fetch(readInData_old,j,T,[(2,9),(8,12),(10,13)],10000,0);
     end
-    cutDictPG = preGen(τ, T, Δt, N, iterMax, false, Dict(), []);
+    cutDictPG = preGen(T, Δt, N, iterMax, false, Dict(), []);
     # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
     #     20, 20, cutDictPG, false, 0, [], 0, pathDict);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
         max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 0, []);
-    solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDictTest);
+    solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDictTest);
     spList,sqList,LList = obtainStat(fData,NN,T,solSDDP);
 
     dataList["NoD"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,LBSDDP,costSDDP,spList,sqList,LList];
 
     for ω in keys(pDistr.ωDistrn)
     #for ω in [(2,9),(8,12),(10,13)]
-        cutDictPG = preGen(τ, T, Δt, N, iterMax, false, Dict(), [ω]);
+        cutDictPG = preGen(T, Δt, N, iterMax, false, Dict(), [ω]);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
         #     20, 20, cutDictPG, false, 0, [ω], 0, pathDict);
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 0, [ω]);
-        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDictTest);
+        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDictTest);
         spList,sqList,LList = obtainStat(fData,NN,T,solSDDP);
 
         dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,LBSDDP,costSDDP,spList,sqList,LList];

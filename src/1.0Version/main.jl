@@ -69,7 +69,7 @@ function solveMain(T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
     return cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist;
 end
 
-function preGen(τ, T, Δt, N, iterMax, qpopt = false, cutDict = Dict(), hardened = [])
+function preGen(T, Δt, N, iterMax, qpopt = false, cutDict = Dict(), hardened = [])
     # pregenerate cuts
 
     UB = 9999999999;
@@ -88,8 +88,8 @@ function preGen(τ, T, Δt, N, iterMax, qpopt = false, cutDict = Dict(), hardene
 
     while iterNo <= iterMax
         iterNo += 1;
-        trialPaths,currentLB,currentUBDict = exeForward_last(τ, T, Δt, N, qpopt, hardened);
-        exeBackward_last(τ, T, Δt, trialPaths, qpopt, hardened);
+        trialPaths,currentLB,currentUBDict = exeForward_last(T, Δt, N, qpopt, hardened);
+        exeBackward_last(T, Δt, trialPaths, qpopt, hardened);
     end
 
     return cutDict;

@@ -222,7 +222,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
                 if ωd in hardened
                     Bparams[k,t] = 1;
                 else
@@ -233,7 +233,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
             end
         end
         for i in fData.genIDList
-            if (i == ωd)&(t <= td + τ)
+            if (i in ωd)&&(t <= td + τ)
                 if i in hardened
                     Bparams[i,t] = 1;
                 else

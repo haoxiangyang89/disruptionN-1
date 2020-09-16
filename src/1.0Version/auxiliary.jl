@@ -39,11 +39,14 @@ function genScenario(pDistr)
     ωProb = [pDistr.ωDistrn[i] for i in ωSupport];
     ωDistrObj = Categorical(ωProb);
     ω = rand(ωDistrObj);
-    return tSupport[t],ωSupport[ω][1], ωSupport[ω][2];
+    scenInd = ωSupport[ω];
+    return tSupport[t],pDistr.ωDict[scenInd],pDistr.ωτ[scenInd];
 end
 
 function modifyOmega(pDistr,hardComp)
     ωDistrNew = Dict();
+    ωDictNew = Dict();
+    ωτNew = Dict();
     for iHard in hardComp
         releaseProb += pDistr.ωDistrn[iHard];
     end
@@ -52,9 +55,11 @@ function modifyOmega(pDistr,hardComp)
         if !(i in hardComp)
             # if it is not the hardened component
             ωDistrNew[i] = pDistr.ωDistrn[i] + releaseProb/avgNo;
+            ωDictNew[i] = pDistr.ωDict[i];
+            ωτNew[i] = pDistr.ωτ[i];
         end
     end
-    pDistrNew = probDistrn(pDistr.tDistrn,ωDistrNew);
+    pDistrNew = probDistrn(pDistr.tDistrn,ωDistrNew,ωDictNew);
     return pDistrNew;
 end
 
@@ -66,7 +71,7 @@ function modifyT(pDistr,λD,T)
     end
     # probability of the time T+1
     tDistrnNew[T] = 1 - sum([tDistrnNew[t] for t in 1:(T-1)]);
-    pDistrNew = probDistrn(tDistrnNew,pDistr.ωDistrn);
+    pDistrNew = probDistrn(tDistrnNew,pDistr.ωDistrn,pDistr.ωDict,pDistr.ωτ);
     return pDistrNew;
 end
 
@@ -342,13 +347,13 @@ function pathSimu_cover(N,T,pDistr,genCutsCount,iterNo)
     return pathSetsel,pathTimesel;
 end
 
-function pathSimu_cover_last(N,τ,T,pDistr)
+function pathSimu_cover_last(N,T,pDistr)
     # maximize the coverage for the terminal stage problem from the sample
     pathSet = [];
     pathTimeList = [];
     selNo = 0;
     while selNo < N
-        pathList = simuPath(T,pDistr,τ);
+        pathList = simuPath(T,pDistr);
         pathTimes = [];
         tNow = 1;
         τList = false;
@@ -387,7 +392,7 @@ function cutUpdate(td,Ω,paraSet,cutCurrentData)
         for item in paraSet
             itemInd += 1;
             if item[1] == ω
-                if (cutCurrentData[itemInd].solStatus == MOI.Optimal)
+                if (cutCurrentData[itemInd].solStatus == MOI.OPTIMAL)
                     if (td,ω) in keys(cutDict)
                         push!(cutDict[td,ω],cutCurrentData[itemInd]);
                     else
@@ -457,6 +462,26 @@ function addTau(pathDict,τ)
         newPath = [];
         for item in pathDict[i]
             push!(newPath,(item[1],item[2],τ));
+        end
+        newpathDict[i] = newPath;
+    end
+    return newpathDict;
+end
+
+# get the index of scenarios
+function reverseScen(pathDict,τ,pDistr)
+    newpathDict = Dict();
+    for i in keys(pathDict)
+        newPath = [];
+        for item in pathDict[i]
+            # find the index of scenario
+            jInd = 0;
+            for j in keys(pDistr.ωDict)
+                if (item[2],τ) in pDistr.ωDict[j]
+                    jInd = j;
+                end
+            end
+            push!(newPath,(item[1],pDistr.ωDict[jInd],pDistr.ωτ[jInd]));
         end
         newpathDict[i] = newPath;
     end
