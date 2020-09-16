@@ -477,7 +477,7 @@ function reverseScen(pathDict,τ,pDistr)
             # find the index of scenario
             jInd = 0;
             for j in keys(pDistr.ωDict)
-                if (item[2],τ) in pDistr.ωDict[j]
+                if item[2] in pDistr.ωDict[j]
                     jInd = j;
                 end
             end

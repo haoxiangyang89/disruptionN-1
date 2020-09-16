@@ -26,7 +26,7 @@ for ci in 1:length(caseList)
 
         # select a preset pathDict
         pathDict = pathDictA[T];
-        pathDict = addTau(pathDict,τ);
+        pathDict = reverseScen(pathDict,τ,pDistr);
         solDet,costDet = exeDet(T, Δt, fData, bData, dData, pDistr, NN, pathDict);
         listDet = [costDet[i] for i in 1:NN];
         meanDet = mean(listDet);
