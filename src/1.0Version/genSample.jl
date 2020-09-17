@@ -20,10 +20,10 @@ for ci in 1:length(caseList)
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
-            remotecall_fetch(readInData,j,ci,caseList,T);
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
         end
 
-        pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NN);
+        pathListData = pmap(i -> simuPath(T,pDistr), 1:NN);
         pathDict[T] = Dict();
         for i in 1:length(pathListData)
             pathDict[T][i] = pathListData[i];
@@ -39,10 +39,10 @@ for ci in 1:length(caseList)
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
-            remotecall_fetch(readInData,j,ci,caseList,T);
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
         end
 
-        pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NNTest);
+        pathListData = pmap(i -> simuPath(T,pDistr), 1:NNTest);
         pathDict[T] = Dict();
         for i in 1:length(pathListData)
             pathDict[T][i] = pathListData[i];
@@ -58,10 +58,10 @@ for ci in 1:length(caseList)
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
-            remotecall_fetch(readInData,j,ci,caseList,T);
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
         end
 
-        pathListData = pmap(i -> simuPath(τ,T,pDistr), 1:NN2);
+        pathListData = pmap(i -> simuPath(T,pDistr), 1:NN2);
         pathDict[T] = Dict();
         for i in 1:length(pathListData)
             pathDict[T][i] = pathListData[i];

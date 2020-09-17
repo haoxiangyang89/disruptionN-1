@@ -13,7 +13,7 @@ for λD in λList
 
     # run the test for the current lambda
     cutDictλ[λD],LBHistλ[λD],UBHistλ[λD],UBuHistλ[λD],UBlHistλ[λD] =
-        solveMain(τ, T, Δt, fData, pDistrNew, bData, dData, N);
+        solveMain(T, Δt, fData, pDistrNew, bData, dData, N);
     println("Disruption Frequency $(λD): LB = $(LBHistλ[λD][length(LBHistλ[λD])])");
 end
 
