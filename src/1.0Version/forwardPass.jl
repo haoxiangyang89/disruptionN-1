@@ -156,29 +156,29 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         solzp = Dict();
         for i in fData.genIDList
             for t in 1:T
-                if abs(value(sp[i,t])) > 1e-5
-                    solSp[i,t] = value(sp[i,t]);
+                if abs(value(mp[:sp][i,t])) > 1e-5
+                    solSp[i,t] = value(mp[:sp][i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if abs(value(sq[i,t])) > 1e-5
-                    solSq[i,t] = value(sq[i,t]);
+                if abs(value(mp[:sq][i,t])) > 1e-5
+                    solSq[i,t] = value(mp[:sq][i,t]);
                 else
                     solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if abs(value(u[i])) > 1e-5
-                solu[i] = value(u[i]);
+            if abs(value(mp[:u][i])) > 1e-5
+                solu[i] = value(mp[:u][i]);
                 for t in 1:T
-                    if abs(value(w[i,t])) > 1e-5
-                        solw[i,t] = value(w[i,t]);
+                    if abs(value(mp[:w][i,t])) > 1e-5
+                        solw[i,t] = value(mp[:w][i,t]);
                     else
                         solw[i,t] = 0;
                     end
-                    if abs(value(zp[i,t])) > 1e-6
-                        solzp[i,t] = value(zp[i,t]);
+                    if abs(value(mp[:zp][i,t])) > 1e-6
+                        solzp[i,t] = value(mp[:zp][i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -187,8 +187,8 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
                 solu[i] = 0;
                 for t in 1:T
                     solw[i,t] = 0;
-                    if abs(value(zp[i,t])) > 1e-6
-                        solzp[i,t] = value(zp[i,t]);
+                    if abs(value(mp[:zp][i,t])) > 1e-6
+                        solzp[i,t] = value(mp[:zp][i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -197,13 +197,13 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         end
         for i in fData.IDList
             for t in 1:T
-                if (abs(value(lpp[i,t])) > 1e-8)|(abs(value(lpm[i,t])) > 1e-8)
-                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
+                if (abs(value(mp[:lpp][i,t])) > 1e-8)|(abs(value(mp[:lpm][i,t])) > 1e-8)
+                    solLp[i,t] = value(mp[:lpp][i,t]) - value(mp[:lpm][i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (abs(value(lqp[i,t])) > 1e-8)|(abs(value(lqm[i,t])) > 1e-8)
-                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
+                if (abs(value(mp[:lqp][i,t])) > 1e-8)|(abs(value(mp[:lqm][i,t])) > 1e-8)
+                    solLq[i,t] = value(mp[:lqp][i,t]) - value(mp[:lqm][i,t]);
                 else
                     solLq[i,t] = 0;
                 end
@@ -410,29 +410,29 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         solzp = Dict();
         for i in fData.genIDList
             for t in td:T
-                if abs(value(sp[i,t])) > 1e-5
-                    solSp[i,t] = value(sp[i,t]);
+                if abs(value(mp[:sp][i,t])) > 1e-5
+                    solSp[i,t] = value(mp[:sp][i,t]);
                 else
                     solSp[i,t] = 0;
                 end
-                if abs(value(sq[i,t])) > 1e-5
-                    solSq[i,t] = value(sq[i,t]);
+                if abs(value(mp[:sq][i,t])) > 1e-5
+                    solSq[i,t] = value(mp[:sq][i,t]);
                 else
                     solSq[i,t] = 0;
                 end
             end
         end
         for i in bData.IDList
-            if abs(value(u[i])) > 1e-5
-                solu[i] = value(u[i]);
+            if abs(value(mp[:u][i])) > 1e-5
+                solu[i] = value(mp[:u][i]);
                 for t in td:T
-                    if abs(value(w[i,t])) > 1e-5
-                        solw[i,t] = value(w[i,t]);
+                    if abs(value(mp[:w][i,t])) > 1e-5
+                        solw[i,t] = value(mp[:w][i,t]);
                     else
                         solw[i,t] = 0;
                     end
-                    if abs(value(zp[i,t])) > 1e-6
-                        solzp[i,t] = value(zp[i,t]);
+                    if abs(value(mp[:zp][i,t])) > 1e-6
+                        solzp[i,t] = value(mp[:zp][i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -441,8 +441,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
                 solu[i] = 0;
                 for t in td:T
                     solw[i,t] = 0;
-                    if abs(value(zp[i,t])) > 1e-6
-                        solzp[i,t] = value(zp[i,t]);
+                    if abs(value(mp[:zp][i,t])) > 1e-6
+                        solzp[i,t] = value(mp[:zp][i,t]);
                     else
                         solzp[i,t] = 0;
                     end
@@ -451,13 +451,13 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         end
         for i in fData.IDList
             for t in td:T
-                if (abs(value(lpp[i,t])) > 1e-8)|(abs(value(lpm[i,t])) > 1e-8)
-                    solLp[i,t] = value(lpp[i,t]) - value(lpm[i,t]);
+                if (abs(value(mp[:lpp][i,t])) > 1e-8)|(abs(value(mp[:lpm][i,t])) > 1e-8)
+                    solLp[i,t] = value(mp[:lpp][i,t]) - value(mp[:lpm][i,t]);
                 else
                     solLp[i,t] = 0;
                 end
-                if (abs(value(lqp[i,t])) > 1e-8)|(abs(value(lqm[i,t]))> 1e-8)
-                    solLq[i,t] = value(lqp[i,t]) - value(lqm[i,t]);
+                if (abs(value(mp[:lqp][i,t])) > 1e-8)|(abs(value(mp[:lqm][i,t]))> 1e-8)
+                    solLq[i,t] = value(mp[:lqp][i,t]) - value(mp[:lqm][i,t]);
                 else
                     solLq[i,t] = 0;
                 end

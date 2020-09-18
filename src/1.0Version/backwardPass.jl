@@ -456,7 +456,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         dsolγ = Dict();
         dsolμ = Dict();
         for i in fData.genIDList
-            dsolλ[i] = -value(λsp[i]);
+            dsolλ[i] = -value(dp[:λsp][i]);
             vhat -= dsolλ[i]*solSp[i];
             if abs(dsolλ[i]) < 1e-4
                 if dsolλ[i] < 0
@@ -466,7 +466,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
             end
         end
         for i in bData.IDList
-            dsolγ[i] = -value(λw[i]);
+            dsolγ[i] = -value(dp[:λw][i]);
             vhat -= dsolγ[i]*solw[i];
             if abs(dsolγ[i]) < 1e-4
                 if dsolγ[i] < 0
@@ -474,7 +474,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
                 end
                 dsolγ[i] = 0;
             end
-            dsolμ[i] = -value(λu[i]);
+            dsolμ[i] = -value(dp[:λu][i]);
             vhat -= dsolμ[i]*solu[i];
             if abs(dsolμ[i]) < 1e-4
                 if dsolμ[i] < 0
