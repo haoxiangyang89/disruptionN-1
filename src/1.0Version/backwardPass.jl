@@ -191,9 +191,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
     end
 end
 
-function buildD(td, ωd, currentPath, τ, Δt, T, qpopt, hardened)
-    prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
-    currentSol = currentPath[prevtpInd][1];
+function buildD(td, ωd, currentSol, τ, Δt, T, qpopt, hardened)
     # precalculate data
     Rdict = Dict();
     Xdict = Dict();
@@ -431,7 +429,9 @@ end
 
 function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
     # trying to find the previous solution that can be used for this td
-    dp = buildD(td, ωd, currentPath, τ, Δt, T, qpopt, hardened);
+    prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
+    currentSol = currentPath[prevtpInd][1];
+    dp = buildD(td, ωd, currentSol, τ, Δt, T, qpopt, hardened);
 
     # return the cut or the dual problem
     if solveOpt
