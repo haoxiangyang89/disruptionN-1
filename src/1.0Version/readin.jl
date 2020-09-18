@@ -738,12 +738,12 @@ function readInData(i,caseList,T,τ,cz = 1e4,λD = 0)
     end
 end
 
-function readInData_tau(i,caseList,T,cz = 1e4,λD = 0,suffix = "")
+function readInData_tau(i,caseList,T,cz = 1e4,λD = 0,suffix = "",τ = nothing)
     fileAdd = "case$(caseList[i])_ieee.m";
     global fData = readStatic(fileAdd,cz);
     disAddt = "testProbReadt_$(caseList[i]).csv";
     disAddo = "testProbReado_$(caseList[i])_tau$(suffix).csv";
-    global pDistr = readDisruption(disAddt,disAddo,"csv");
+    global pDistr = readDisruption(disAddt,disAddo,"csv",τ);
     pAdd = "testDataP_$(caseList[i]).csv";
     qAdd = "testDataQ_$(caseList[i]).csv";
     global dData = readDemand(pAdd,qAdd,"csv");
