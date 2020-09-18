@@ -57,12 +57,14 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in 1:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in 1:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], [fData.rateA[k], p[k,t], q[k,t]] in SecondOrderCone());
+    # @constraint(mp, lineThermal[k in fData.brList, t in 1:T], [fData.rateA[k], p[k,t], q[k,t]] in SecondOrderCone());
+    @constraint(mp, lineThermal[k in fData.brList, t in 1:T], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
     @constraint(mp, powerflow[k in fData.brList, t in 1:T], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in 2:T], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in 1:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], [u[i], zp[i,t], zq[i,t]] in SecondOrderCone());
+    # @constraint(mp, bThermal[i in bData.IDList, t in 1:T], [u[i], zp[i,t], zq[i,t]] in SecondOrderCone());
+    @constraint(mp, bThermal[i in bData.IDList, t in 1:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in 1:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
     @constraint(mp, bInvmax[i in bData.IDList, t in 1:T], w[i,t] <= bData.cap[i]);
     @constraint(mp, bInvIni[i in bData.IDList], w[i,0] == bData.bInv[i]);
@@ -79,8 +81,10 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
         (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
     @constraint(mp,gcAux3[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
         fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+    # @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
+    #     [tAux1[i,t], tAux2[i,t], tAux3[i,t]] in SecondOrderCone());
     @constraint(mp, genCost1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3],
-        [tAux1[i,t], tAux2[i,t], tAux3[i,t]] in SecondOrderCone());
+        tAux2[i,t]^2 + tAux3[i,t]^2 <= tAux1[i,t]^2);
     @constraint(mp, genCost2[i in fData.genIDList, t in 1:T; fData.cp[i].n == 2],
         fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
 
@@ -247,14 +251,16 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         sqhatsum[i,t] - dData.qd[i][t] == sum(q[k,t] for k in fData.branchDict1[i]));
     @constraint(mp, pequal[k in fData.brList, t in td:T], p[k,t] == -p[(k[2],k[1],k[3]),t]);
     @constraint(mp, qequal[k in fData.brList, t in td:T], q[k,t] == -q[(k[2],k[1],k[3]),t]);
-    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], [fData.rateA[k], p[k,t], q[k,t]] in SecondOrderCone());
+    # @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], [fData.rateA[k], p[k,t], q[k,t]] in SecondOrderCone());
+    @constraint(mp, lineThermal1[k in fData.brList, t in td:T;Bparams[k,t] == 1], p[k,t]^2 + q[k,t]^2 <= fData.rateA[k]^2);
     @constraint(mp, lineThermal2[k in fData.brList, t in td:T;Bparams[k,t] == 0], p[k,t] == 0);
     @constraint(mp, lineThermal3[k in fData.brList, t in td:T;Bparams[k,t] == 0], q[k,t] == 0);
     @constraint(mp, powerflow1[k in fData.brList, t in td:T;Bparams[k,t] == 1], v[k[2],t] == v[k[1],t] - 2*(Rdict[k]*p[k,t] + Xdict[k]*q[k,t]));
     @constraint(mp, rampUp[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] <= fData.RU[i]);
     @constraint(mp, rampDown[i in fData.genIDList, t in td:T; Bparams[i,t] == 1], sp[i,t] - sp[i,t - 1] >= fData.RD[i]);
     @constraint(mp, bInv[i in bData.IDList, t in td:T], w[i,t] == w[i,t-1] - y[i,t]*Δt);
-    @constraint(mp, bThermal[i in bData.IDList, t in td:T], [u[i], zp[i,t], zq[i,t]] in SecondOrderCone());
+    # @constraint(mp, bThermal[i in bData.IDList, t in td:T], [u[i], zp[i,t], zq[i,t]] in SecondOrderCone());
+    @constraint(mp, bThermal[i in bData.IDList, t in td:T], zp[i,t]^2 + zq[i,t]^2 <= u[i]^2);
     # @constraint(mp, bThermal1[i in bData.IDList, t in td:T], zp[i,t] <= u[i]);
     # @constraint(mp, bThermal2[i in bData.IDList, t in td:T], zq[i,t] <= u[i]);
     @constraint(mp, bEfficient[i in bData.IDList, l in 1:length(bData.ηα[i]), t in td:T], zp[i,t] <= bData.ηα[i][l]*y[i,t] + bData.ηβ[i][l]);
@@ -276,8 +282,10 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         (-fData.cp[i].params[1] + fData.cp[i].params[2]^2)/(4*fData.cp[i].params[1]));
     @constraint(mp,gcAux3[i in fData.genIDList, t in td:T; fData.cp[i].n == 3], tAux3[i,t] == sqrt(fData.cp[i].params[1])*sp[i,t] +
         fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1])));
+    # @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
+    #     [tAux1[i,t],tAux2[i,t],tAux3[i,t]] in SecondOrderCone());
     @constraint(mp, genCost1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3],
-        [tAux1[i,t],tAux2[i,t],tAux3[i,t]] in SecondOrderCone());
+        tAux2[i,t]^2 + tAux3[i,t]^2 <= tAux1[i,t]^2);
     @constraint(mp, genCost2[i in fData.genIDList, t in td:T; fData.cp[i].n == 2],
         fs[i,t] == fData.cp[i].params[1]*sp[i,t]);
 

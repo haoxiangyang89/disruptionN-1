@@ -235,7 +235,8 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
     end
 
     if qpopt
-        dp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
+        # dp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
+        dp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     else
         dp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end

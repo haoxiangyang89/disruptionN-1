@@ -11,7 +11,8 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
 
     # construct the first stage without disruption occurring
     if qpopt
-        mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
+        # mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
+        mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     else
         mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end
@@ -93,7 +94,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
     # set up the objective function
     @variable(mp,fs[i in fData.genIDList, t in 1:T]);
     if qpopt
-        @constraint(mp, genCost[i in fData.genIDList, t in 1:T], fs[i,t] ==
+        @constraint(mp, genCost[i in fData.genIDList, t in 1:T], fs[i,t] >=
             sum(fData.cp[i].params[nco]*sp[i,t]^(fData.cp[i].n - nco) for nco in 1:(fData.cp[i].n - 1)));
     else
         @variable(mp,tAux1[i in fData.genIDList, t in 1:T; fData.cp[i].n == 3] >= 0);
@@ -249,7 +250,8 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     end
 
     if qpopt
-        mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
+        # mp = Model(optimizer_with_attributes(Ipopt.Optimizer, "linear_solver" => "ma27"));
+        mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     else
         mp = Model(optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV), "OutputFlag" => 0 ,"Threads" => 1));
     end
@@ -339,7 +341,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     # set up the objective function
     @variable(mp,fs[i in fData.genIDList, t in td:T]);
     if qpopt
-        @constraint(mp, genCost[i in fData.genIDList, t in td:T], fs[i,t] ==
+        @constraint(mp, genCost[i in fData.genIDList, t in td:T], fs[i,t] >=
             sum(fData.cp[i].params[nco]*sp[i,t]^(fData.cp[i].n - nco) for nco in 1:(fData.cp[i].n - 1)));
     else
         @variable(mp,tAux1[i in fData.genIDList, t in td:T; fData.cp[i].n == 3] >= 0);
