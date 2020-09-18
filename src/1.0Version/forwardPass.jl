@@ -1,6 +1,5 @@
 # forward pass of the SDDP algorithm
-function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
-    # precalculate data
+function build1(Δt, T, qpopt)
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
@@ -120,23 +119,32 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
         sum(sum(θDict[t,ω]*θ[t,ω] for ω in Ω) for t in 2:T));
 
     @objective(mp, Min, objExpr);
+    return mp;
+end
 
+function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
+    # precalculate data
+    mp = build1(Δt, T, qpopt);
     if solveOpt
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp);
-        statusMp = termination_status(mp);
-        if statusMp != MOI.OPTIMAL
-            set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
-                                                        "OutputFlag" => 0,
-                                                        "NumericFocus" => 3,
-                                                        "Threads" => 1));
+        stopIter = false;
+        while !(stopIter)
             optimize!(mp);
             statusMp = termination_status(mp);
+            println("First stage, solving status $(statusMp)");
+            if statusMp != MOI.OPTIMAL
+                mp = build1(Δt, T, qpopt);
+                set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
+                                                            "OutputFlag" => 0,
+                                                            "NumericFocus" => 3,
+                                                            "Threads" => 1));
+            else
+                stopIter = true;
+            end
         end
         #with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
-        println("First stage, solving status $(statusMp)");
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();
@@ -209,8 +217,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
     end
 end
 
-function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
-    # precalculate data
+function buildt(td, ωd, currentSol, τ, Δt, T, qpopt,hardened)
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
@@ -365,23 +372,33 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         sum(lDict[i,t]*(lpp[i,t] + lpm[i,t] + lqp[i,t] + lqm[i,t]) for i in fData.IDList) for t in td:T) +
         sum(sum(θDict[t,ω]*θ[t,ω] for ω in Ω) for t in (td + τ + 1):T));
     @objective(mp, Min, objExpr);
+    return mp;
+end
+
+function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
+    # precalculate data
+    mp = buildt(td, ωd, currentSol, τ, Δt, T, qpopt,hardened);
 
     if solveOpt
         # solve the problem
         # optimize!(mp, with_optimizer(Gurobi.Optimizer, GUROBI_ENV, OutputFlag = 0,
         #     QCPDual = 1, NumericFocus = 3, BarQCPConvTol = 1e-9, FeasibilityTol = 1e-9));
-        optimize!(mp);
-        statusMp = termination_status(mp);
-        if statusMp != MOI.OPTIMAL
-            set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
-                                                        "OutputFlag" => 0,
-                                                        "NumericFocus" => 3,
-                                                        "Threads" => 1));
+        stopIter = false;
+        while !(stopIter)
             optimize!(mp);
             statusMp = termination_status(mp);
+            println("Disruption time $(td), scenario $(ωd), solving status $(statusMp)");
+            if statusMp != MOI.OPTIMAL
+                mp = buildt(td, ωd, currentSol, τ, Δt, T, qpopt,hardened);
+                set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
+                                                            "OutputFlag" => 0,
+                                                            "NumericFocus" => 3,
+                                                            "Threads" => 1));
+            else
+                stopIter = true;
+            end
         end
         #optimize!(mp, with_optimizer(Ipopt.Optimizer, linear_solver = "ma27", acceptable_tol = 1e-8, print_level = 0, max_iter = 10000));
-        println("Disruption time $(td), scenario $(ωd), solving status $(statusMp)");
         mpObj = objective_value(mp);
         # obtain the solutions
         solSp = Dict();

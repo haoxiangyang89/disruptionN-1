@@ -191,8 +191,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
     end
 end
 
-function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
-    # trying to find the previous solution that can be used for this td
+function buildD(td, ωd, currentPath, τ, Δt, T, qpopt, hardened)
     prevtpInd = maximum([i for i in 1:length(currentPath) if currentPath[i][2] < td]);
     currentSol = currentPath[prevtpInd][1];
     # precalculate data
@@ -427,6 +426,12 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
             λgcAux3[i,t]*(fData.cp[i].params[2]/(2*sqrt(fData.cp[i].params[1]))) for i in fData.genIDList if fData.cp[i].n == 3) for t in td:T) -
             sum(sum(sum(λcuts[tp,ω,l]*cutDict[tp,ω][l].vhat for l in 1:length(cutDict[tp,ω])) for ω in Ω if (tp,ω) in keys(cutDict)) for tp in (td + τ + 1):T)
             );
+    return dp;
+end
+
+function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = true, hardened = [])
+    # trying to find the previous solution that can be used for this td
+    dp = buildD(td, ωd, currentPath, τ, Δt, T, qpopt, hardened);
 
     # return the cut or the dual problem
     if solveOpt
