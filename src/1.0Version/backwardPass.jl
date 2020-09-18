@@ -556,7 +556,8 @@ function exeBackward_last(T, Δt, trialPaths, qpopt = false, hardened = [])
     for n in keys(trialPaths)
         tpDict[n] = [trialPaths[n][i][2] for i in 1:length(trialPaths[n])];
     end
-    for t in T:-1:(T-τ)
+    τMin = minimum([i for i in values(ωτ)]);
+    for t in T:-1:(T-τMin)
         matchedTrial = [];
         possiblePath = [];
         for n in keys(trialPaths)

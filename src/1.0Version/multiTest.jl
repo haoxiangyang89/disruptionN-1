@@ -1,5 +1,6 @@
 # test multiple components broken
 # upper bound tests
+using Distributed;
 addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
@@ -12,7 +13,6 @@ caseList = [13,33,123];
 T = 96;
 Δt = 0.25;
 N = 5;
-pathTrain = load("pathHist_600.jld");
 ci = 3;
 
 for j in procs()
@@ -24,7 +24,6 @@ cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,fal
 startPGT = time();
 cutDictPG = preGen(T, Δt, N, iterMax);
 preGenT = time() - startPGT;
-cutDictPGOri = deepcopy(cutDictPG);
 
 startT = time();
 # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
