@@ -21,7 +21,7 @@ for ci in 1:length(caseList)
     pathDict = pathTrain["pathDict"][ci][T];
     pathDict = reverseScen(pathDict,τ,pDistr);
 
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,false, 2, 2);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,true, 2, 2);
 
     startPGT = time();
     cutDictPG = preGen(T, Δt, N, iterMax);
@@ -31,7 +31,7 @@ for ci in 1:length(caseList)
     startT = time();
     # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
     #     Int64(round(100/N)),Int64(round(100/N)), cutDictPG, false, 200, [], 0, pathDict);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, true,
         max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, true, 500, [], 0, pathDict);
     elapsedT = time() - startT;
     dataList = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];

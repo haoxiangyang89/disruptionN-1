@@ -23,10 +23,10 @@ for ci in 1:length(caseList)
             #remotecall_fetch(readInData_old,j,T,ωSet0,10000,0);
         end
         # train the stochastic strategy
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,false, 2, 2);
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,true, 2, 2);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, cutDictPG);
         startTau = time();
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, true,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
         tauT = time() - startTau;
 
@@ -35,7 +35,7 @@ for ci in 1:length(caseList)
         for i in 1:NN
             pathDict[i] = pathListData[i];
         end
-        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDict);
+        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, true, pathDict);
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
