@@ -134,7 +134,7 @@ function noDisruptionBuild(Δt, T, qpopt = false, solveOpt = true)
             optimize!(mp);
             statusMp = termination_status(mp);
             println("First stage, solving status $(statusMp)");
-            if statusMp != MOI.OPTIMAL
+            if statusMp != MOI.OPTIMAL || statusMp != MOI.OTHER_LIMIT
                 mp = build1(Δt, T, qpopt);
                 set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
                                                             "OutputFlag" => 0,
@@ -388,7 +388,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
             optimize!(mp);
             statusMp = termination_status(mp);
             println("Disruption time $(td), scenario $(ωd), solving status $(statusMp)");
-            if statusMp != MOI.OPTIMAL
+            if statusMp != MOI.OPTIMAL || statusMp != MOI.OTHER_LIMIT
                 mp = buildt(td, ωd, currentSol, τ, Δt, T, qpopt,hardened);
                 set_optimizer(mp, optimizer_with_attributes(() -> Gurobi.Optimizer(GUROBI_ENV),
                                                             "OutputFlag" => 0,
