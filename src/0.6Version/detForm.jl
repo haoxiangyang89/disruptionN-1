@@ -4,8 +4,8 @@ function detBuild(Δt, T, fData, bData, dData, solveOpt = true)
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
-        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
-        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
+        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
+        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
     end
 
     # construct the first stage without disruption occurring
@@ -171,8 +171,8 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
     Rdict = Dict();
     Xdict = Dict();
     for k in fData.brList
-        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
-        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), 6);
+        Rdict[k] = round(fData.g[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
+        Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
     end
     Bparams = Dict();
     for t in td:T

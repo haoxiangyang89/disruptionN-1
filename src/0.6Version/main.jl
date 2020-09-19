@@ -63,7 +63,8 @@ function solveMain(T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
         end
         iterElapsed = time() - iterStart;
         push!(timeHist,iterElapsed);
-        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB,2)), UB = [$(round(currentUBl,2)),$(round(currentUBu,2))], Time = $(iterElapsed) sec. =========")
+        println("========= Iteration $(iterNo) Finished, LB = $(round(currentLB, digits = 2)),
+            UB = [$(round(currentUBl,digits = 2)),$(round(currentUBu, digits = 2))], Time = $(iterElapsed) sec. =========")
     end
     return cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist;
 end
