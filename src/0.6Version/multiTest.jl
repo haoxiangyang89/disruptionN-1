@@ -24,7 +24,7 @@ end
 startT = time();
 # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
 #     Int64(round(100/N)),Int64(round(100/N)), cutDictPG, false, 200, [], 0, pathDict);
-cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, true,
+cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
     max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), Dict(), false, 500, [], 0, Dict());
 elapsedT = time() - startT;
 

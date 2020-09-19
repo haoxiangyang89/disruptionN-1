@@ -21,7 +21,7 @@ for ci in 1:length(caseList)
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
-            remotecall_fetch(readInData,j,ci,caseList,T);
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
         end
         pathDict = pathDictA[T];
         dataList[ci][T] = Dict();
@@ -29,9 +29,9 @@ for ci in 1:length(caseList)
         # train trainNo of strategies and obtain the 95% PI
         for tn in 1:trainNo
             # train the stochastic programming strategy
-            cutDictPG = preGen(τ, T, Δt, N, iterMax);
+            cutDictPG = preGen(T, Δt, N, iterMax);
             #cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 30, 30, cutDictPG);
-            cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+            cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
                 max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
             for j in procs()
                 remotecall_fetch(cutIni,j,cutDict);

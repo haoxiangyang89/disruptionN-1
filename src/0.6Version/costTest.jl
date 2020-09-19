@@ -1,4 +1,5 @@
 # test the relationship between the cost coefficients and the run time performance
+using Distributed;
 addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();

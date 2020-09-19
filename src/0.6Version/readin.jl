@@ -646,6 +646,64 @@ function readDisruption(tfileName,ofileName,fileType,τ = nothing)
     end
 end
 
+function readDisruption_old(fileName,fileType)
+    # read in the disruption data: disruption time distribution
+    if fileType == "csv"
+        # csv file format:
+        # First row: time period t
+        # Second row: pr{D = t}
+        # Third row: Ω
+        # Fourth row: pr{B_ω = 0}
+        dataRaw = readdlm(fileName, ',');
+
+        # detect the dimension of T
+        dataT = dataRaw[1:2,:];
+        emptyInd = findfirst(x -> x=="", dataT[1,:]);
+        if emptyInd != nothing
+            # if it is not full length
+            dataT = dataT[:,1:(emptyInd - 1)];
+        end
+        tDistrn = Dict();
+        mt,nt = size(dataT);
+        for tInd in 1:nt
+            tDistrn[Int64(dataT[1,tInd])] = dataT[2,tInd];
+        end
+
+        # detect the dimension of Ω
+        dataOme = dataRaw[3:4,:];
+        emptyInd = findfirst(x -> x=="", dataOme[1,:]);
+        if emptyInd != nothing
+            # if it is not full length
+            dataOme = dataOme[:,1:(emptyInd - 1)];
+        end
+        ωDistrn = Dict();
+        mo,no = size(dataOme);
+        for oInd in 1:no
+            lineStr = dataOme[1,oInd];
+            if ',' in lineStr
+                # parse the line
+                startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
+                ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[2,oInd];
+            else
+                # parse the node
+                disN = lineStr;
+                ωDistrn[disN] = dataOme[2,oInd];
+            end
+        end
+        if sum(values(ωDistrn)) == 1
+            pDistr = probDistrn(tDistrn,ωDistrn);
+            return pDistr;
+        else
+            ωList = [item for item in keys(ωDistrn)];
+            ωDistrn[ωList[1]] = 1 - sum([ωDistrn[item] for item in keys(ωDistrn) if item != ωList[1]]);
+            pDistr = probDistrn(tDistrn,ωDistrn);
+            return pDistr;
+        end
+    else
+        println("Currently your file type is not supported");
+    end
+end
+
 function readBattery(fileName,fileType,baseMVA = 100)
     # read in the battery information: charging/discharging factor, capacity
     if fileType == "csv"

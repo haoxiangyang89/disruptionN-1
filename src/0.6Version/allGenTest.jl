@@ -1,4 +1,5 @@
 # test to compare allGen and only disruption gen
+using Distributed;
 addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
@@ -17,11 +18,12 @@ for ci in 1:length(caseList)
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T);
     end
+    pathDict = reverseScen(pathDict,τ,pDistr);
 
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, 20, false,false, 2, 2);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 20, false,false, 2, 2);
 
     startT = time();
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, Dict(),
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, true, false, 20, 20, Dict(),
         false, 200, [], 0, pathDict);
     elapsedT = time() - startT;
     dataList["allGen"] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT];

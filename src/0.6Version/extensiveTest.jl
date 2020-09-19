@@ -1,4 +1,5 @@
 # test 1: compare SDDP and extensive formulation
+using Distributed;
 addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
