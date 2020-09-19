@@ -16,9 +16,8 @@ pathTrain = load("pathHist_600.jld");
 for ci in 1:length(caseList)
     pathDict = pathTrain["pathDict"][ci][T];
     for j in procs()
-        remotecall_fetch(readInData,j,ci,caseList,T);
+        remotecall_fetch(readInData,j,ci,caseList,T,τ);
     end
-    pathDict = reverseScen(pathDict,τ,pDistr);
 
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 20, false,false, 2, 2);
 

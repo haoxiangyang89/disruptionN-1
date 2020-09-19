@@ -32,6 +32,20 @@ for ci in 1:length(caseList)
     end
     dataDict[ci] = pathDict;
 end
+# reverse the old generated sample
+for ci in 1:2
+    pathDict = Dict();
+    TList = [24,36,48,72,96];
+    for T in TList
+        τ = Int64(1/6*T);
+        for j in procs()
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
+        end
+
+        pathDict[T] = reverseScen(dataDict[ci][T],τ,pDistr);
+    end
+    dataDict[ci] = pathDict;
+end
 save("pathHist_1000.jld","pathDict",dataDict);
 
 for ci in 1:length(caseList)
@@ -51,6 +65,21 @@ for ci in 1:length(caseList)
     end
     dataDictTest[ci] = pathDict;
 end
+# reverse the old generated sample
+for ci in 1:2
+    pathDict = Dict();
+    TList = [24,36,48,72,96];
+    for T in TList
+        τ = Int64(1/6*T);
+        for j in procs()
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
+        end
+
+        pathDict[T] = reverseScen(dataDictTest[ci][T],τ,pDistr);
+    end
+    dataDictTest[ci] = pathDict;
+end
+
 save("pathHist_600.jld","pathDict",dataDictTest);
 
 for ci in 1:length(caseList)
@@ -70,4 +99,18 @@ for ci in 1:length(caseList)
     end
     dataDict2[ci] = pathDict;
 end
+for ci in 1:2
+    pathDict = Dict();
+    TList = [24,36,48,72,96];
+    for T in TList
+        τ = Int64(1/6*T);
+        for j in procs()
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
+        end
+
+        pathDict[T] = reverseScen(dataDict2[ci][T],τ,pDistr);
+    end
+    dataDict2[ci] = pathDict;
+end
+
 save("pathHist_5000.jld","pathDict",dataDict2);
