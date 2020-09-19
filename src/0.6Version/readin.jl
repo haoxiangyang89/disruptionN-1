@@ -15,27 +15,27 @@ function readMP(fileAdd::String)
     close(f);
 
     # separate the raw strings for bus/gen/branch/cost
-    if typeof(match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         busST = match(r"mpc.bus = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         busST = "";
     end
-    if typeof(match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         genST = match(r"mpc.gen = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         genST = "";
     end
-    if typeof(match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         brST = match(r"mpc.branch = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         brST = "";
     end
-    if typeof(match(r"mpc.gencost = \[([0-9\t\ \.\;\r\n\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.gencost = \[([0-9\t\ \.\;\r\n\-e]*)\];",rawStr)) != Nothing
         cST = match(r"mpc.gencost = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         cST = "";
     end
-    if typeof(match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Void
+    if typeof(match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr)) != Nothing
         uST = match(r"mpc.uncertain = \[([0-9\t\ \.\;\n\r\-e]*)\];",rawStr).captures[1];
     else
         uST = ""
@@ -192,10 +192,10 @@ function parsebrST(brST,baseMVA)
                 τ = 1.0;
             end
             σ1 = parse(Float64,brdata[10]);
-            g[(fID,tID,1)] = round(r/(r^2 + x^2),6);
-            g[(tID,fID,1)] = round(r/(r^2 + x^2),6);
-            b[(fID,tID,1)] = round(-x/(r^2 + x^2),6);
-            b[(tID,fID,1)] = round(-x/(r^2 + x^2),6);
+            g[(fID,tID,1)] = round(r/(r^2 + x^2),digits=6);
+            g[(tID,fID,1)] = round(r/(r^2 + x^2),digits=6);
+            b[(fID,tID,1)] = round(-x/(r^2 + x^2),digits=6);
+            b[(tID,fID,1)] = round(-x/(r^2 + x^2),digits=6);
             bc[(fID,tID,1)] = bc1;
             bc[(tID,fID,1)] = bc1;
             τ1[(fID,tID,1)] = τ;
@@ -230,10 +230,10 @@ function parsebrST(brST,baseMVA)
                 τ = 1.0;
             end
             σ1 = parse(Float64,brdata[10]);
-            g[(fID,tID,m[(fID,tID)])] = round(r/(r^2 + x^2),6);
-            g[(tID,fID,m[(tID,fID)])] = round(r/(r^2 + x^2),6);
-            b[(fID,tID,m[(fID,tID)])] = round(-x/(r^2 + x^2),6);
-            b[(tID,fID,m[(tID,fID)])] = round(-x/(r^2 + x^2),6);
+            g[(fID,tID,m[(fID,tID)])] = round(r/(r^2 + x^2),digits=6);
+            g[(tID,fID,m[(tID,fID)])] = round(r/(r^2 + x^2),digits=6);
+            b[(fID,tID,m[(fID,tID)])] = round(-x/(r^2 + x^2),digits=6);
+            b[(tID,fID,m[(tID,fID)])] = round(-x/(r^2 + x^2),digits=6);
             bc[(fID,tID,m[(fID,tID)])] = bc1;
             bc[(tID,fID,m[(tID,fID)])] = bc1;
             τ1[(fID,tID,m[(fID,tID)])] = τ;
@@ -588,7 +588,7 @@ function readStatic(fileName::String, cz = 1e7)
     return fData;
 end
 
-function readDisruption(fileName,fileType)
+function readDisruption(tfileName,ofileName,fileType,τ = nothing)
     # read in the disruption data: disruption time distribution
     if fileType == "csv"
         # csv file format:
@@ -596,15 +596,7 @@ function readDisruption(fileName,fileType)
         # Second row: pr{D = t}
         # Third row: Ω
         # Fourth row: pr{B_ω = 0}
-        dataRaw = readdlm(fileName, ',');
-
-        # detect the dimension of T
-        dataT = dataRaw[1:2,:];
-        emptyInd = findfirst(x -> x=="", dataT[1,:]);
-        if emptyInd != 0
-            # if it is not full length
-            dataT = dataT[:,1:(emptyInd - 1)];
-        end
+        dataT = readdlm(tfileName, ',');
         tDistrn = Dict();
         mt,nt = size(dataT);
         for tInd in 1:nt
@@ -612,33 +604,41 @@ function readDisruption(fileName,fileType)
         end
 
         # detect the dimension of Ω
-        dataOme = dataRaw[3:4,:];
-        emptyInd = findfirst(x -> x=="", dataOme[1,:]);
-        if emptyInd != 0
-            # if it is not full length
-            dataOme = dataOme[:,1:(emptyInd - 1)];
-        end
+        dataOme = readdlm(ofileName, ',');
         ωDistrn = Dict();
+        ωDict = Dict();
+        ωτ = Dict();
         mo,no = size(dataOme);
-        for oInd in 1:no
-            lineStr = dataOme[1,oInd];
-            if ',' in lineStr
-                # parse the line
-                startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
-                ωDistrn[parse(Int64,startN),parse(Int64,endN)] = dataOme[2,oInd];
+        for oInd in 1:mo
+            scenInd = dataOme[oInd,1];
+            ωDistrn[scenInd] = dataOme[oInd,2];
+            ωDict[scenInd] = [];
+            if τ == nothing
+                τr = dataOme[oInd,3];
             else
-                # parse the node
-                disN = lineStr;
-                ωDistrn[disN] = dataOme[2,oInd];
+                τr = τ;
+            end
+            ωτ[scenInd] = τr;
+            for noInd in 4:no
+                lineStr = dataOme[oInd,noInd];
+                if ',' in lineStr
+                    # parse the line
+                    startN,endN = match(r"\(([0-9]+),([0-9]+)\)",lineStr).captures;
+                    push!(ωDict[scenInd],(parse(Int64,startN),parse(Int64,endN)));
+                elseif !(lineStr == "")
+                    # parse the node
+                    disN = lineStr;
+                    push!(ωDict[scenInd],disN);
+                end
             end
         end
         if sum(values(ωDistrn)) == 1
-            pDistr = probDistrn(tDistrn,ωDistrn);
+            pDistr = probDistrn(tDistrn,ωDistrn,ωDict,ωτ);
             return pDistr;
         else
             ωList = [item for item in keys(ωDistrn)];
             ωDistrn[ωList[1]] = 1 - sum([ωDistrn[item] for item in keys(ωDistrn) if item != ωList[1]]);
-            pDistr = probDistrn(tDistrn,ωDistrn);
+            pDistr = probDistrn(tDistrn,ωDistrn,ωDict,ωτ);
             return pDistr;
         end
     else
@@ -719,11 +719,31 @@ function readDemand(fileNameP, fileNameQ, fileType)
     end
 end
 
-function readInData(i,caseList,T,cz = 1e4,λD = 0)
+function readInData(i,caseList,T,τ,cz = 1e4,λD = 0)
     fileAdd = "case$(caseList[i])_ieee.m";
     global fData = readStatic(fileAdd,cz);
-    disAdd = "testProbRead_$(caseList[i]).csv"
-    global pDistr = readDisruption(disAdd,"csv");
+    disAddt = "testProbReadt_$(caseList[i]).csv";
+    disAddo = "testProbReado_$(caseList[i]).csv";
+    global pDistr = readDisruption(disAddt,disAddo,"csv",τ);
+    pAdd = "testDataP_$(caseList[i]).csv";
+    qAdd = "testDataQ_$(caseList[i]).csv";
+    global dData = readDemand(pAdd,qAdd,"csv");
+    bAdd = "testDataB_$(caseList[i]).csv";
+    global bData = readBattery(bAdd,"csv",fData.baseMVA);
+
+    if λD == 0
+        global pDistr = modifyT(pDistr,4/T,T);
+    else
+        global pDistr = modifyT(pDistr,λD,T);
+    end
+end
+
+function readInData_tau(i,caseList,T,cz = 1e4,λD = 0,suffix = "",τ = nothing)
+    fileAdd = "case$(caseList[i])_ieee.m";
+    global fData = readStatic(fileAdd,cz);
+    disAddt = "testProbReadt_$(caseList[i]).csv";
+    disAddo = "testProbReado_$(caseList[i])_tau$(suffix).csv";
+    global pDistr = readDisruption(disAddt,disAddo,"csv",τ);
     pAdd = "testDataP_$(caseList[i]).csv";
     qAdd = "testDataQ_$(caseList[i]).csv";
     global dData = readDemand(pAdd,qAdd,"csv");

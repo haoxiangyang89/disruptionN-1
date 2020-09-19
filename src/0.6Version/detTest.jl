@@ -1,4 +1,5 @@
 # test deterministic vs. stochastic
+using Distributed;
 addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
@@ -19,33 +20,38 @@ for ci in 1:length(caseList)
     for T in TList
         τ = Int64(1/6*T);
         for j in procs()
-            remotecall_fetch(readInData,j,ci,caseList,T);
+            remotecall_fetch(readInData,j,ci,caseList,T,τ);
             #remotecall_fetch(readInData_old,j,T,ωSet0,10000,0);
         end
 
         # select a preset pathDict
         pathDict = pathDictA[T];
-        solDet,costDet = exeDet(τ, T, Δt, fData, bData, dData, pDistr, NN, pathDict);
+        pathDict = reverseScen(pathDict,τ,pDistr);
+        solDet,costDet = exeDet(T, Δt, fData, bData, dData, pDistr, NN, pathDict);
         listDet = [costDet[i] for i in 1:NN];
         meanDet = mean(listDet);
         sigmaDet = std(listDet);
-        println(round(meanDet,2)," ",round(meanDet - 1.96*sigmaDet,2)," ",round(meanDet + 1.96*sigmaDet,2));
+        println(round(meanDet,digits = 2)," ",
+                round(meanDet - 1.96*sigmaDet,digits = 2)," ",
+                round(meanDet + 1.96*sigmaDet,digits = 2));
         detOut[T] = [costDet,listDet,meanDet,sigmaDet];
 
         # train the stochastic programming strategy
-        cutDictPG = preGen(τ, T, Δt, N, iterMax);
+        cutDictPG = preGen(T, Δt, N, iterMax);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 10, 10, cutDictPG);
-        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+        cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
         for j in procs()
             remotecall_fetch(cutIni,j,cutDict);
         end
 
-        solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDict);
+        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDict);
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
-        println(round(meanSDDP,2)," ",round(meanSDDP - 1.96*sigmaSDDP,2)," ",round(meanSDDP + 1.96*sigmaSDDP,2));
+        println(round(meanSDDP,digits = 2)," ",
+                round(meanSDDP - 1.96*sigmaSDDP,digits = 2)," ",
+                round(meanSDDP + 1.96*sigmaSDDP,digits = 2));
         stochOut[T] = [LBSDDP, costSDDP, listSDDP, meanSDDP, sigmaSDDP, LBHist];
 
         detSol,detObj = detBuild(Δt, T, fData, bData, dData);

@@ -15,7 +15,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
                 if ωd in hardened
                     Bparams[k,t] = 1;
                 else
@@ -26,7 +26,7 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
             end
         end
         for i in fData.genIDList
-            if (i == ωd)&(t <= td + τ)
+            if (i in ωd)&&(t <= td + τ)
                 if i in hardened
                     Bparams[i,t] = 1;
                 else
@@ -207,7 +207,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
                 if ωd in hardened
                     Bparams[k,t] = 1;
                 else
@@ -218,7 +218,7 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
             end
         end
         for i in fData.genIDList
-            if (i == ωd)&(t <= td + τ)
+            if (i in ωd)&&(t <= td + τ)
                 if i in hardened
                     Bparams[i,t] = 1;
                 else
@@ -500,7 +500,7 @@ function constructBackwardM(td, τ, T, Δt, trialPaths, matchedTrial, qpopt = fa
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     paraSet = Iterators.product(Ω,matchedTrial);
 
-    cutCurrentData = pmap(item -> dfBuild_D(td, item[1], trialPaths[item[2]], τ, Δt, T, qpopt, true, hardened), paraSet);
+    cutCurrentData = pmap(item -> dfBuild_D(td, pDistr.ωDict[item[1]], trialPaths[item[2]], pDistr.ωτ[item[1]], Δt, T, qpopt, true, hardened), paraSet);
     for j in procs()
         remotecall_fetch(cutUpdate,j,td,Ω,paraSet,cutCurrentData);
     end
@@ -530,7 +530,7 @@ function exeBackward(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
         matchedTrial = [];
         possiblePath = [];
         for n in keys(trialPaths)
-            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3],trialPaths[n][i][4]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
             if t in tpDict[n]
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
@@ -538,8 +538,8 @@ function exeBackward(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
                 end
             end
         end
-        if trialPaths != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+        if possiblePath != []
+            constructBackwardM(t, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end
@@ -554,11 +554,12 @@ function exeBackward_last(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
     for n in keys(trialPaths)
         tpDict[n] = [trialPaths[n][i][2] for i in 1:length(trialPaths[n])];
     end
-    for t in T:-1:(T-τ)
+    τMin = minimum([i for i in values(pDistr.ωτ)]);
+    for t in T:-1:(T-τMin)
         matchedTrial = [];
         possiblePath = [];
         for n in keys(trialPaths)
-            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+            pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3],trialPaths[n][i][4]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
             if t in tpDict[n]
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
@@ -566,8 +567,8 @@ function exeBackward_last(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
                 end
             end
         end
-        if trialPaths != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+        if possiblePath != []
+            constructBackwardM(t, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end
@@ -581,9 +582,13 @@ function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
     tpDict = Dict();
     for n in keys(trialPaths)
         possibleTList = [t for t in 1:T];
-        for t in [trialPaths[n][i][2] for i in 2:length(trialPaths[n])]
-            for tp in 1:τ
-                deleteat!(possibleTList,findin(possibleTList,t+tp));
+        for i in 2:length(trialPaths[n])
+            t = trialPaths[n][i][2];
+            for tp in 1:trialPaths[n][i][4]
+                delInd = findfirst(x -> x == t+tp, possibleTList);
+                if delInd != nothing
+                    deleteat!(possibleTList,delInd);
+                end
             end
         end
         tpDict[n] = possibleTList;
@@ -593,15 +598,15 @@ function exeBackwardAll(τ, T, Δt, trialPaths, qpopt = false, hardened = [])
         matchedTrial = [];
         for n in keys(trialPaths)
             if t in tpDict[n]
-                pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
+                pathTemp = [(trialPaths[n][i][2],trialPaths[n][i][3],trialPaths[n][i][4]) for i in 2:length(trialPaths[n]) if trialPaths[n][i][2] < t];
                 if !(pathTemp in possiblePath)
                     push!(matchedTrial,n);
                     push!(possiblePath,pathTemp);
                 end
             end
         end
-        if trialPaths != []
-            constructBackwardM(t, τ, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
+        if possiblePath != []
+            constructBackwardM(t, T, Δt, trialPaths, matchedTrial, qpopt, hardened);
         end
         println("Time $(t) Passed");
     end

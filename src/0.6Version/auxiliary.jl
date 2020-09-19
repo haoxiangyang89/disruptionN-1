@@ -12,7 +12,7 @@ function rand(s::CategoricalSamplerNew)
     s.category[rand(Categorical(s.mass))]
 end
 
-function genScenario(pDistr)
+function genScenario_old(pDistr)
     # generate a disruption time
     tSupport = [i for i in keys(pDistr.tDistrn)];
     tProb = [pDistr.tDistrn[i] for i in tSupport];
@@ -27,17 +27,39 @@ function genScenario(pDistr)
     return tSupport[t],ωSupport[ω];
 end
 
+function genScenario(pDistr)
+    # generate a disruption time
+    tSupport = [i for i in keys(pDistr.tDistrn)];
+    tProb = [pDistr.tDistrn[i] for i in tSupport];
+    tDistrObj = Categorical(tProb);
+    t = rand(tDistrObj);
+
+    # generate a disruption location
+    ωSupport = [i for i in keys(pDistr.ωDistrn)];
+    ωProb = [pDistr.ωDistrn[i] for i in ωSupport];
+    ωDistrObj = Categorical(ωProb);
+    ω = rand(ωDistrObj);
+    scenInd = ωSupport[ω];
+    return tSupport[t],pDistr.ωDict[scenInd],pDistr.ωτ[scenInd];
+end
+
 function modifyOmega(pDistr,hardComp)
     ωDistrNew = Dict();
-    releaseProb = pDistr.ωDistrn[hardComp];
-    avgNo = length(values(pDistr.ωDistrn)) - 1;
+    ωDictNew = Dict();
+    ωτNew = Dict();
+    for iHard in hardComp
+        releaseProb += pDistr.ωDistrn[iHard];
+    end
+    avgNo = length(values(pDistr.ωDistrn)) - length(hardComp);
     for i in keys(pDistr.ωDistrn)
-        if i != hardComp
+        if !(i in hardComp)
             # if it is not the hardened component
             ωDistrNew[i] = pDistr.ωDistrn[i] + releaseProb/avgNo;
+            ωDictNew[i] = pDistr.ωDict[i];
+            ωτNew[i] = pDistr.ωτ[i];
         end
     end
-    pDistrNew = probDistrn(pDistr.tDistrn,ωDistrNew);
+    pDistrNew = probDistrn(pDistr.tDistrn,ωDistrNew,ωDictNew);
     return pDistrNew;
 end
 
@@ -49,7 +71,7 @@ function modifyT(pDistr,λD,T)
     end
     # probability of the time T+1
     tDistrnNew[T] = 1 - sum([tDistrnNew[t] for t in 1:(T-1)]);
-    pDistrNew = probDistrn(tDistrnNew,pDistr.ωDistrn);
+    pDistrNew = probDistrn(tDistrnNew,pDistr.ωDistrn,pDistr.ωDict,pDistr.ωτ);
     return pDistrNew;
 end
 
@@ -267,29 +289,29 @@ function calDualC(td, τ, T, fData, pDistr)
     return fDict,lDict,θDict;
 end
 
-function simuPath(τ,T,pDistr)
+function simuPath(T,pDistr)
     pathList = [];
     nowT = 1;
     while nowT <= T
-        tp,ωd = genScenario(pDistr);
-        push!(pathList, (tp,ωd));
+        tp,ωd,τω = genScenario(pDistr);
+        push!(pathList, (tp,ωd,τω));
         if nowT == 1
             nowT += tp;
             nowT = min(nowT, T + 1);
         else
-            nowT += tp + τ;
+            nowT += tp + τω;
             nowT = min(nowT, T + 1);
         end
     end
     return pathList;
 end
 
-function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
+function pathSimu_cover(N,T,pDistr,genCutsCount,iterNo)
     # maximize the coverage from the sample
     pathSet = [];
     pathTimeList = [];
     for i in 1:(10*N)
-        pathList = simuPath(τ,T,pDistr);
+        pathList = simuPath(T,pDistr);
         push!(pathSet,pathList);
         pathTimes = [];
         tNow = 1;
@@ -297,7 +319,7 @@ function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
             if tNow == 1
                 tNow += pathList[j][1];
             else
-                tNow += τ + pathList[j][1];
+                tNow += pathList[j][3] + pathList[j][1];
             end
             if tNow < T
                 push!(pathTimes, tNow);
@@ -325,13 +347,13 @@ function pathSimu_cover(N,τ,T,pDistr,genCutsCount,iterNo)
     return pathSetsel,pathTimesel;
 end
 
-function pathSimu_cover_last(N,τ,T,pDistr)
+function pathSimu_cover_last(N,T,pDistr)
     # maximize the coverage for the terminal stage problem from the sample
     pathSet = [];
     pathTimeList = [];
     selNo = 0;
     while selNo < N
-        pathList = simuPath(τ,T,pDistr);
+        pathList = simuPath(T,pDistr);
         pathTimes = [];
         tNow = 1;
         τList = false;
@@ -339,11 +361,11 @@ function pathSimu_cover_last(N,τ,T,pDistr)
             if tNow == 1
                 tNow += pathList[j][1];
             else
-                tNow += τ + pathList[j][1];
+                tNow += pathList[j][3] + pathList[j][1];
             end
             if tNow < T
                 push!(pathTimes, tNow);
-                if tNow >= T - τ
+                if tNow >= T - pathList[j][3]
                     τList = true;
                 end
             end
@@ -431,4 +453,37 @@ function breakComponent(fDatal, bItem, bType)
         fDataLocal.brList = lineListTemp;
     end
     global fData = fDataLocal;
+end
+
+# Add τ to the last element of pathDict
+function addTau(pathDict,τ)
+    newpathDict = Dict();
+    for i in keys(pathDict)
+        newPath = [];
+        for item in pathDict[i]
+            push!(newPath,(item[1],item[2],τ));
+        end
+        newpathDict[i] = newPath;
+    end
+    return newpathDict;
+end
+
+# get the index of scenarios
+function reverseScen(pathDict,τ,pDistr)
+    newpathDict = Dict();
+    for i in keys(pathDict)
+        newPath = [];
+        for item in pathDict[i]
+            # find the index of scenario
+            jInd = 0;
+            for j in keys(pDistr.ωDict)
+                if item[2] in pDistr.ωDict[j]
+                    jInd = j;
+                end
+            end
+            push!(newPath,(item[1],pDistr.ωDict[jInd],pDistr.ωτ[jInd]));
+        end
+        newpathDict[i] = newPath;
+    end
+    return newpathDict;
 end

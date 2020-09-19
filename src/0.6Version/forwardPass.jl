@@ -217,7 +217,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) == ωd)|((k[2],k[1]) == ωd))&(t <= td + τ)
+            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
                 if ωd in hardened
                     Bparams[k,t] = 1;
                 else
@@ -228,7 +228,7 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
             end
         end
         for i in fData.genIDList
-            if (i == ωd)&(t <= td + τ)
+            if (i in ωd)&&(t <= td + τ)
                 if i in hardened
                     Bparams[i,t] = 1;
                 else
@@ -454,9 +454,10 @@ function constructForwardM(td, ωd, sol, τ, Δt, T, qpopt = false, hardenend = 
     return sol,objV;
 end
 
-function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
+function buildPath(T, Δt, qpopt = false, pathList = [], hardened = [])
     disT = 1;
     ωd = 0;
+    τω = 0;
     costn = 0;
     solHist = [];
     currentLB = 0;
@@ -465,14 +466,14 @@ function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
     while disT <= T
         # solve the current stage problem, state variables are passed
         nowT = disT;
-        currentSol,objV = constructForwardM(disT, ωd, currentSol, τ, Δt, T, qpopt, hardened);
-        push!(solHist,(currentSol,nowT,ωd));
+        currentSol,objV = constructForwardM(disT, ωd, currentSol, τω, Δt, T, qpopt, hardened);
+        push!(solHist,(currentSol,nowT,ωd,τω));
 
         # generate disruption
         if pathList == []
-            tp,ωd = genScenario(pDistr);
+            tp,ωd,τω = genScenario(pDistr);
         else
-            tp,ωd = pathList[iter];
+            tp,ωd,τω = pathList[iter];
         end
         iter += 1;
         if nowT == 1
@@ -483,7 +484,7 @@ function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
             costn += sum(currentSol.u[i]*bData.cost[i] for i in bData.IDList);
             costn = calCostF(costn, currentSol, T, fData, nowT, disT);
         else
-            disT += tp + τ;
+            disT += tp + τω;
             disT = min(disT, T + 1);
             # calculate the cost of the solution until the next disruption time
             costn = calCostF(costn, currentSol, T, fData, nowT, disT);
@@ -493,7 +494,7 @@ function buildPath(τ, T, Δt, qpopt = false, pathList = [], hardened = [])
     return [solHist,currentLB,costn];
 end
 
-function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = [])
+function exeForward(T, Δt, N, qpopt = false, pathDict = Dict(), hardened = [])
     # execution of forward pass
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -513,7 +514,7 @@ function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = 
             pathDict[i] = [];
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
@@ -522,7 +523,7 @@ function exeForward(τ, T, Δt, N, qpopt = false, pathDict = Dict(), hardened = 
     return solDict, currentLB, costDict;
 end
 
-function exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt = false, hardened = [])
+function exeForward_simuOpt(T, Δt, N, iterNo, qpopt = false, hardened = [])
     # execution of forward pass, with samples selected to cover more time
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -535,14 +536,14 @@ function exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt = false, hardened = [])
     for t in 2:T
         genCutsCount[t] = 0;
     end
-    pathDict,pathTimeList = pathSimu_cover(N, τ, T, pDistr, genCutsCount, iterNo);
+    pathDict,pathTimeList = pathSimu_cover(N, T, pDistr, genCutsCount, iterNo);
     for i in 1:N
         # update genCutsCount
         for j in 1:length(pathTimeList[i])
             genCutsCount[pathTimeList[i][j]] += 1;
         end
     end
-    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    returnData = pmap(i -> buildPath(T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
@@ -551,7 +552,7 @@ function exeForward_simuOpt(τ, T, Δt, N, iterNo, qpopt = false, hardened = [])
     return solDict, currentLB, costDict;
 end
 
-function exeForward_last(τ, T, Δt, N, qpopt = false, hardened = [])
+function exeForward_last(T, Δt, N, qpopt = false, hardened = [])
     # execution of forward pass, with samples selected to cover more time
     # input: N: the number of trial points;
     #       cutDict: set of currently generated cuts (global in every core)
@@ -560,8 +561,8 @@ function exeForward_last(τ, T, Δt, N, qpopt = false, hardened = [])
     costDict = Dict();
     objV = 0;
     currentLB = 0;
-    pathDict,pathTimeList = pathSimu_cover_last(N, τ, T, pDistr);
-    returnData = pmap(i -> buildPath(τ, T, Δt, qpopt, pathDict[i], hardened), 1:N);
+    pathDict,pathTimeList = pathSimu_cover_last(N, T, pDistr);
+    returnData = pmap(i -> buildPath(T, Δt, qpopt, pathDict[i], hardened), 1:N);
     for n in 1:N
         solDict[n] = returnData[n][1];
         costDict[n] = returnData[n][3];
