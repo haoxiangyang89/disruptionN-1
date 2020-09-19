@@ -69,7 +69,7 @@ function solveMain(T, Δt, N, allGen = false, qpopt = false, iterMin = 100,
     return cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist;
 end
 
-function preGen(τ, T, Δt, N, iterMax, qpopt = false, cutDict = Dict(), hardened = [])
+function preGen(T, Δt, N, iterMax, qpopt = false, cutDict = Dict(), hardened = [])
     # pregenerate cuts
 
     UB = 9999999999;
