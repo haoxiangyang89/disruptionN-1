@@ -177,18 +177,18 @@ dOnlyt3 <- read.csv("./Desktop/Git/disruptionN-1/test/csvOut/dOnly_time_3.csv", 
 
 outString = "./Desktop/Git/disruptionN-1/test/csvOut/GenAll_LB.png"
 
-png(file = outString, width= 13, height = 4, units = 'in',res = 300);
+png(file = outString, width= 13, height = 4.5, units = 'in',res = 300);
 par(mfrow=c(1,3));
-par(mar = c(5,5,1.5,2.5));
-plot(dOnlyt1$V1[1:20],dOnlylb1$V1[1:20], type = "l", xlim = range(c(80,10000)), ylim=range(c(0,30000)), xlab = "Time (sec.)", ylab = "LB", 
+par(mar = c(5,5,2,2.5));
+plot(dOnlyt1$V1[1:20],dOnlylb1$V1[1:20], type = "l", xlim = range(c(80,10000)), ylim=range(c(0,30000)), xlab = "Time (sec.)", ylab = "LB", main = "Case 13", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log = "x");
 lines(dOnlyt1$V2[1:100],dOnlylb1$V2[1:100], col = "#E41A1C", lwd = 2, log = "x");
 legend("bottomright",c("GenAll","DOnly"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt2$V1[1:20],dOnlylb2$V1[1:20], type = "l", xlim = range(c(30,28000)), ylim=range(c(0,38000)), xlab = "Time (sec.)", ylab = "LB", 
+plot(dOnlyt2$V1[1:20],dOnlylb2$V1[1:20], type = "l", xlim = range(c(30,28000)), ylim=range(c(0,38000)), xlab = "Time (sec.)", ylab = "LB", main = "Case 33", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(dOnlyt2$V2[1:100],dOnlylb2$V2[1:100], col = "#E41A1C", lwd = 2, log="x");
 legend("bottomright",c("GenAll","DOnly"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt3$V1[1:20],dOnlylb3$V1[1:20], type = "l", xlim = range(c(100,63000)), ylim=range(c(0,50000)), xlab = "Time (sec.)", ylab = "LB", 
+plot(dOnlyt3$V1[1:20],dOnlylb3$V1[1:20], type = "l", xlim = range(c(100,63000)), ylim=range(c(0,50000)), xlab = "Time (sec.)", ylab = "LB", main = "Case 123", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(dOnlyt3$V2[1:99],dOnlylb3$V2[1:99], col = "#E41A1C", lwd = 2, log="x");
 legend("bottomright",c("GenAll","DOnly"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
@@ -199,16 +199,16 @@ outString = "./Desktop/Git/disruptionN-1/test/csvOut/pgFig_LB.png"
 png(file = outString, width= 13, height = 4, units = 'in',res = 300);
 par(mfrow=c(1,3));
 
-par(mar = c(5,5,1.5,2.5));
-plot(dOnlyt1$V3[1:100], dOnlylb1$V3[1:100], type = "l", xlim=range(c(0,2500)), xlab = "Time (sec.)", ylab = "LB", 
+par(mar = c(5,5,2,2.5));
+plot(dOnlyt1$V3[1:100], dOnlylb1$V3[1:100], type = "l", xlim=range(c(0,2500)), xlab = "Time (sec.)", ylab = "LB", main = "Case 13", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2);
 lines(dOnlyt1$V2[1:100], dOnlylb1$V2[1:100], col = "#E41A1C", lwd = 2);
 legend("bottomright",c("Pre-generated cuts","No pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt2$V3[1:100], dOnlylb2$V3[1:100], type = "l", xlim=range(c(0,5500)), xlab = "Time (sec.)", ylab = "LB",
+plot(dOnlyt2$V3[1:100], dOnlylb2$V3[1:100], type = "l", xlim=range(c(0,5500)), xlab = "Time (sec.)", ylab = "LB", main = "Case 33", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2);
 lines(dOnlyt2$V2[1:100], dOnlylb2$V2[1:100], col = "#E41A1C", lwd = 2);
 legend("bottomright",c("Pre-generated cuts","No pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt3$V3[1:100], dOnlylb3$V3[1:100], type = "l", xlim=range(c(0,20000)), xlab = "Time (sec.)", ylab = "LB",
+plot(dOnlyt3$V3[1:100], dOnlylb3$V3[1:100], type = "l", xlim=range(c(0,20000)), xlab = "Time (sec.)", ylab = "LB", main = "Case 123", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2);
 lines(dOnlyt3$V2[1:100], dOnlylb3$V2[1:100], col = "#E41A1C", lwd = 2);
 legend("bottomright",c("Pre-generated cuts","No pre-generated cuts"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
@@ -235,7 +235,7 @@ outString = "./Desktop/Git/disruptionN-1/test/csvOut/NFig_LB.png"
 png(file = outString, width= 13, height = 8, units = 'in',res = 300);
 par(mfrow=c(2,3));
 par(mar = c(5,5,2.5,2.5));
-plot(0:500, Nt1$V1[1:501], type = "l", ylim=range(c(0,6000)), xlab = "Iteration", ylab = "Time (sec.)",
+plot(0:500, Nt1$V1[1:501], type = "l", ylim=range(c(0,6000)), xlab = "Iteration", ylab = "Time (sec.)", main = "Case 13", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(0:100, Nt2$V1[1:101], col = "#E41A1C", lwd = 2, log="x");
 lines(0:50, Nt3$V1[1:51], col = "#4DAF4A", lwd = 2, log="x");
@@ -243,7 +243,7 @@ lines(0:33, Nt4$V1[1:34], col = "#984EA3", lwd = 2, log="x");
 lines(0:25, Nt5$V1[1:26], col = "#3CAEA3", lwd = 2, log="x");
 legend("topleft",c(expression(~N^p~" = 1",~N^p~" = 5",~N^p~" = 10",~N^p~" = 15",~N^p~" = 20")), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 
-plot(0:500, Nt1$V2[1:501], type = "l", ylim=range(c(0,12000)), xlab = "Iteration", ylab = "Time (sec.)",
+plot(0:500, Nt1$V2[1:501], type = "l", ylim=range(c(0,12000)), xlab = "Iteration", ylab = "Time (sec.)", main = "Case 33", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(0:100, Nt2$V2[1:101], col = "#E41A1C", lwd = 2, log="x");
 lines(0:50, Nt3$V2[1:51], col = "#4DAF4A", lwd = 2, log="x");
@@ -251,7 +251,7 @@ lines(0:33, Nt4$V2[1:34], col = "#984EA3", lwd = 2, log="x");
 lines(0:25, Nt5$V2[1:26], col = "#3CAEA3", lwd = 2, log="x");
 legend("topleft",c(expression(~N^p~" = 1",~N^p~" = 5",~N^p~" = 10",~N^p~" = 15",~N^p~" = 20")), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 
-plot(0:500, Nt1$V3[1:501], type = "l", ylim=range(c(0,28000)), xlab = "Iteration", ylab = "Time (sec.)",
+plot(0:500, Nt1$V3[1:501], type = "l", ylim=range(c(0,28000)), xlab = "Iteration", ylab = "Time (sec.)", main = "Case 123", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(0:100, Nt2$V3[1:101], col = "#E41A1C", lwd = 2, log="x");
 lines(0:50, Nt3$V3[1:51], col = "#4DAF4A", lwd = 2, log="x");

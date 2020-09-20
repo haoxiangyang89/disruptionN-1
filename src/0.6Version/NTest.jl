@@ -21,7 +21,6 @@ for ci in 1:length(caseList)
     for j in procs()
         remotecall_fetch(readInData,j,ci,caseList,T,τ);
     end
-    pathDict = reverseScen(pathDict,τ,pDistr);
 
     cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,false, 2, 2);
 

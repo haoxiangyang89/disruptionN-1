@@ -1,7 +1,7 @@
 # test multiple components broken
 # upper bound tests
 using Distributed;
-addprocs(30);
+addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 #pmap(i -> importIpopt(),1:30);
