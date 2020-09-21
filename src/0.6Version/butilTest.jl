@@ -20,23 +20,23 @@ for ci in 1:length(caseList)
 
     dataList[ci] = Dict();
     for j in procs()
-        remotecall_fetch(readInData,j,ci,caseList,T);
+        remotecall_fetch(readInData,j,ci,caseList,T,τ);
     end
 
     # select a preset pathDict
     pathDict = pathDictA[T];
-    solDet,costDet = exeDet(τ, T, Δt, fData, bData, dData, pDistr, NN, pathDict);
+    solDet,costDet = exeDet(T, Δt, fData, bData, dData, pDistr, NN, pathDict);
 
     # train the stochastic strategy
-    cutDictPG = preGen(τ, T, Δt, N, iterMax);
+    cutDictPG = preGen(T, Δt, N, iterMax);
     # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, cutDictPG);
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, false, false,
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
         max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
     for j in procs()
         remotecall_fetch(cutIni,j,cutDict);
     end
 
-    solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDict);
+    solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDict);
 
     # read the battery utilization data from solDet and solSDDP
     uDet = solDet[1][1][1].u;
