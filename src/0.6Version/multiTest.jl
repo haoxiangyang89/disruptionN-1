@@ -1,7 +1,7 @@
 # test multiple components broken
 # upper bound tests
 using Distributed;
-addprocs(20);
+addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 #pmap(i -> importIpopt(),1:30);
@@ -14,6 +14,7 @@ T = 24;
 Δt = 0.25;
 N = 5;
 ci = 3;
+NN = 1000;
 
 # obtain an N-1 policy
 τ = Int64(1/6*T);
@@ -38,10 +39,11 @@ end
 startT = time();
 # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
 #     Int64(round(100/N)),Int64(round(100/N)), cutDictPG, false, 200, [], 0, pathDict);
-cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, true,
-    max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), Dict(), true, 500, [], 0, Dict());
+cutDict,LBHistm,UBHistm,UBuHistm,UBlHistm,timeHistm = solveMain(T, Δt, N, false, false,
+    max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), Dict(), false, 500, [], 0, Dict());
 elapsedT = time() - startT;
-dataList = [LBHist,UBHist,UBuHist,UBlHist,timeHist,elapsedT,preGenT];
+dataList = [LBHist,UBHist,UBuHist,UBlHist,timeHist,
+            LBHistm,UBHistm,UBuHistm,UBlHistm,timeHistm,elapsedT];
 cutDictNM = deepcopy(cutDict);
 
 # plug in the N-1 policy in the multi-disruption case
