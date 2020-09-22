@@ -38,7 +38,7 @@ for ci in 1:length(caseList)
             end
 
             # test against 5000 samples
-            solSDDP, LBSDDP, costSDDP = exeForward(τ, T, Δt, NN, false, pathDict);
+            solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDict);
             listSDDP = [costSDDP[i] for i in 1:NN];
             meanSDDP = mean(listSDDP);
             sigmaSDDP = std(listSDDP);
