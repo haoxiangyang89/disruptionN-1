@@ -1,4 +1,5 @@
 # test of solution stability
+using Distributed;
 addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
@@ -42,7 +43,7 @@ for ci in 1:length(caseList)
             listSDDP = [costSDDP[i] for i in 1:NN];
             meanSDDP = mean(listSDDP);
             sigmaSDDP = std(listSDDP);
-            println(round(meanSDDP,2)," ",round(meanSDDP - 1.96*sigmaSDDP,2)," ",round(meanSDDP + 1.96*sigmaSDDP,2));
+            println(round(meanSDDP,digits = 2)," ",round(meanSDDP - 1.96*sigmaSDDP,digits = 2)," ",round(meanSDDP + 1.96*sigmaSDDP,digits = 2));
             dataList[ci][T][tn] = [LBSDDP, costSDDP, listSDDP, meanSDDP, sigmaSDDP];
             save("stabilityResults.jld","data",dataList);
         end
