@@ -16,25 +16,29 @@ function fBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = tr
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) in ωdList)||((k[2],k[1]) in ωdList))&&(t <= td + τ)
-                if ωd in hardened
-                    Bparams[k,t] = 1;
+            for ωInd in ωd
+                if (((k[1],k[2]) in pDistr.ωDict[ωInd])|((k[2],k[1]) in pDistr.ωDict[ωInd]))&(t <= td + τ)
+                    if ωInd in hardened
+                        Bparams[k,t] = 1;
+                    else
+                        Bparams[k,t] = 0;
+                    end
                 else
-                    Bparams[k,t] = 0;
+                    Bparams[k,t] = 1;
                 end
-            else
-                Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
-            if (i in ωdList)&&(t <= td + τ)
-                if i in hardened
-                    Bparams[i,t] = 1;
+            for ωInd in ωd
+                if (i in pDistr.ωDict[ωInd])&(t <= td + τ)
+                    if ωInd in hardened
+                        Bparams[i,t] = 1;
+                    else
+                        Bparams[i,t] = 0;
+                    end
                 else
-                    Bparams[i,t] = 0;
+                    Bparams[i,t] = 1;
                 end
-            else
-                Bparams[i,t] = 1;
             end
         end
     end
@@ -203,31 +207,34 @@ function dfBuild_D(td, ωd, currentPath, τ, Δt, T, qpopt = false, solveOpt = t
         Xdict[k] = -fData.b[k]/(fData.g[k]^2 + fData.b[k]^2);
     end
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
-    ωdList = [pDistr.ωDict[ωInd] for ωInd in ωd];
     Bparams = Dict();
     for t in td:T
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) in ωdList)||((k[2],k[1]) in ωdList))&&(t <= td + τ)
-                if ωd in hardened
-                    Bparams[k,t] = 1;
+            for ωInd in ωd
+                if (((k[1],k[2]) in pDistr.ωDict[ωInd])|((k[2],k[1]) in pDistr.ωDict[ωInd]))&(t <= td + τ)
+                    if ωInd in hardened
+                        Bparams[k,t] = 1;
+                    else
+                        Bparams[k,t] = 0;
+                    end
                 else
-                    Bparams[k,t] = 0;
+                    Bparams[k,t] = 1;
                 end
-            else
-                Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
-            if (i in ωdList)&&(t <= td + τ)
-                if i in hardened
-                    Bparams[i,t] = 1;
+            for ωInd in ωd
+                if (i in pDistr.ωDict[ωInd])&(t <= td + τ)
+                    if ωInd in hardened
+                        Bparams[i,t] = 1;
+                    else
+                        Bparams[i,t] = 0;
+                    end
                 else
-                    Bparams[i,t] = 0;
+                    Bparams[i,t] = 1;
                 end
-            else
-                Bparams[i,t] = 1;
             end
         end
     end

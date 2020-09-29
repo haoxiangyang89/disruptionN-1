@@ -213,30 +213,33 @@ function fBuild(td, ωd, currentSol, τ, Δt, T, qpopt = false, solveOpt = true,
     end
     Ω = [ω for ω in keys(pDistr.ωDistrn)];
     Bparams = Dict();
-    ωdList = [pDistr.ωDict[ωInd] for ωInd in ωd];
     for t in td:T
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) in ωdList)||((k[2],k[1]) in ωdList))&&(t <= td + τ)
-                if ωd in hardened
-                    Bparams[k,t] = 1;
+            for ωInd in ωd
+                if (((k[1],k[2]) in pDistr.ωDict[ωInd])|((k[2],k[1]) in pDistr.ωDict[ωInd]))&(t <= td + τ)
+                    if ωInd in hardened
+                        Bparams[k,t] = 1;
+                    else
+                        Bparams[k,t] = 0;
+                    end
                 else
-                    Bparams[k,t] = 0;
+                    Bparams[k,t] = 1;
                 end
-            else
-                Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
-            if (i in ωdList)&&(t <= td + τ)
-                if i in hardened
-                    Bparams[i,t] = 1;
+            for ωInd in ωd
+                if (i in pDistr.ωDict[ωInd])&(t <= td + τ)
+                    if ωInd in hardened
+                        Bparams[i,t] = 1;
+                    else
+                        Bparams[i,t] = 0;
+                    end
                 else
-                    Bparams[i,t] = 0;
+                    Bparams[i,t] = 1;
                 end
-            else
-                Bparams[i,t] = 1;
             end
         end
     end
