@@ -78,11 +78,11 @@ for ci in 1:length(caseList)
 
     for ω in keys(pDistr.ωDistrn)
     #for ω in [(2,9),(8,12),(10,13)]
-        cutDictPG = preGen(T, Δt, N, iterMax, false, Dict(), [ω]);
+        cutDictPG = preGen(T, Δt, N, iterMax, false, Dict(), pDistr.ωDict[ω]);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false,
         #     20, 20, cutDictPG, false, 0, [ω], 0, pathDict);
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
-            max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 0, [ω]);
+            max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 0, pDistr.ωDict[ω]);
         solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDictTest);
         spList,sqList,LList = obtainStat(fData,NN,T,solSDDP);
 
