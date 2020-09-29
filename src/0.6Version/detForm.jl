@@ -179,29 +179,25 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            for ωInd in ωd
-                if (((k[1],k[2]) in pDistr.ωDict[ωInd])|((k[2],k[1]) in pDistr.ωDict[ωInd]))&(t <= td + τ)
-                    if ωInd in hardened
-                        Bparams[k,t] = 1;
-                    else
-                        Bparams[k,t] = 0;
-                    end
-                else
+            if (((k[1],k[2]) in ωd)|((k[2],k[1]) in ωd))&(t <= td + τ)
+                if ((k[1],k[2]) in hardened) | ((k[2],k[1]) in hardened)
                     Bparams[k,t] = 1;
+                else
+                    Bparams[k,t] = 0;
                 end
+            else
+                Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
-            for ωInd in ωd
-                if (i in pDistr.ωDict[ωInd])&(t <= td + τ)
-                    if ωInd in hardened
-                        Bparams[i,t] = 1;
-                    else
-                        Bparams[i,t] = 0;
-                    end
-                else
+            if (i in ωd)&(t <= td + τ)
+                if i in hardened
                     Bparams[i,t] = 1;
+                else
+                    Bparams[i,t] = 0;
                 end
+            else
+                Bparams[i,t] = 1;
             end
         end
     end
