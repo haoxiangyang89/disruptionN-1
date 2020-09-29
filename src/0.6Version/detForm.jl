@@ -175,18 +175,19 @@ function fDetBuild(td, ωd, currentSol, τ, Δt, T, fData, bData, dData, solveOp
         Xdict[k] = -round(fData.b[k]/(fData.g[k]^2 + fData.b[k]^2), digits = 6);
     end
     Bparams = Dict();
+    ωdList = [pDistr.ωDict[ωInd] for ωInd in ωd];
     for t in td:T
         # create B parameters
         for k in fData.brList
             # if the line is disrupted and it is within disruption time
-            if (((k[1],k[2]) in ωd)||((k[2],k[1]) in ωd))&&(t <= td + τ)
+            if (((k[1],k[2]) in ωdList)||((k[2],k[1]) in ωdList))&&(t <= td + τ)
                 Bparams[k,t] = 0;
             else
                 Bparams[k,t] = 1;
             end
         end
         for i in fData.genIDList
-            if (i in ωd)&(t <= td + τ)
+            if (i in ωdList)&(t <= td + τ)
                 Bparams[i,t] = 0;
             else
                 Bparams[i,t] = 1;
