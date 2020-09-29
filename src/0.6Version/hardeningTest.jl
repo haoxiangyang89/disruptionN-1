@@ -83,7 +83,7 @@ for ci in 1:length(caseList)
         #     20, 20, cutDictPG, false, 0, [ω], 0, pathDict);
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20), cutDictPG, false, 0, pDistr.ωDict[ω]);
-        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDictTest);
+        solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDictTest, pDistr.ωDict[ω]);
         spList,sqList,LList = obtainStat(fData,NN,T,solSDDP);
 
         dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,LBSDDP,costSDDP,spList,sqList,LList];
