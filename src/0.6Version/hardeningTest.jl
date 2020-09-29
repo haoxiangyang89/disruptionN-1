@@ -87,7 +87,6 @@ for ci in 1:length(caseList)
         spList,sqList,LList = obtainStat(fData,NN,T,solSDDP);
 
         dataList[ω] = [LBHist,UBHist,UBuHist,UBlHist,timeHist,LBSDDP,costSDDP,spList,sqList,LList];
+        save("hardResults_$(ci).jld","data",dataList);
     end
-
-    save("hardResults_$(ci).jld","data",dataList);
 end
