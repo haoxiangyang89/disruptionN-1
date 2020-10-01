@@ -19,9 +19,8 @@ for ci in 1:length(caseList)
         remotecall_fetch(readInData,j,ci,caseList,T,τ);
     end
     pathDict = pathTrain["pathDict"][ci][T];
-    pathDict = reverseScen(pathDict,τ,pDistr);
 
-    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,true, 2, 2);
+    cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, 30, false,false, 2, 2);
 
     startPGT = time();
     cutDictPG = preGen(T, Δt, N, iterMax);

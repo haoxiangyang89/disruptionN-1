@@ -1,6 +1,6 @@
 # test 5 lines with scenario specific tau
 using Distributed;
-addprocs(20);
+addprocs(30);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();
 
@@ -27,7 +27,7 @@ for ci in 1:length(caseList)
     for i in 1:NN
         pathDict[i] = pathListData[i];
     end
-    solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, true, pathDict);
+    solSDDP, LBSDDP, costSDDP = exeForward(T, Δt, NN, false, pathDict);
     listSDDP = [costSDDP[i] for i in 1:NN];
     meanSDDP = mean(listSDDP);
     sigmaSDDP = std(listSDDP);
