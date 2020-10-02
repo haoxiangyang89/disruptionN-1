@@ -59,5 +59,6 @@ for j in procs()
 end
 solSDDPM, LBSDDPM, costSDDPM = exeForward(T, Δt, NN, false, pathDict);
 
-save("MultiResults.jld","MultiOut",dataList,"N1Cuts",cutDictN1,"MultiCuts",cutDict,
+save("MultiResults.jld","MultiOut",dataList,
+    #"N1Cuts",cutDictN1,"MultiCuts",cutDict,
     "Results",[solDet, costDet, solSDDP1, LBSDDP1, costSDDP1, solSDDPM, LBSDDPM, costSDDPM]);

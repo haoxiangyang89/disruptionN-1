@@ -1,4 +1,5 @@
 # upper bound tests
+using Distributed;
 addprocs(20);
 @everywhere include("loadMod.jl");
 @everywhere const GUROBI_ENV = Gurobi.Env();

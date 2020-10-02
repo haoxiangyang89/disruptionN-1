@@ -25,10 +25,12 @@ for ci in 1:length(caseList)
         end
 
         # train the stochastic strategy
+        startT = time();
         cutDictPG = preGen(T, Δt, N, iterMax);
         # cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(τ, T, Δt, N, true, false, 20, 20, cutDictPG);
         cutDict,LBHist,UBHist,UBuHist,UBlHist,timeHist = solveMain(T, Δt, N, false, false,
             max(Int64(round(500/N)),20), max(Int64(round(500/N)),20),cutDictPG);
+        elapsedT = time() - startT;
 
         pathListData = pmap(i -> simuPath(T,pDistr), 1:NN);
         pathDict = Dict();
@@ -39,7 +41,7 @@ for ci in 1:length(caseList)
         listSDDP = [costSDDP[i] for i in 1:NN];
         meanSDDP = mean(listSDDP);
         sigmaSDDP = std(listSDDP);
-        dataList[ci][τ] = [LBHist,LBSDDP,listSDDP,meanSDDP,sigmaSDDP];
+        dataList[ci][τ] = [LBHist,LBSDDP,listSDDP,meanSDDP,sigmaSDDP,timeHist,elapsedT];
         save("tauResults_$(ci).jld","data",dataList);
     end
 end

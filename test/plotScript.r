@@ -188,7 +188,7 @@ plot(dOnlyt2$V1[1:20],dOnlylb2$V1[1:20], type = "l", xlim = range(c(30,28000)), 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(dOnlyt2$V2[1:100],dOnlylb2$V2[1:100], col = "#E41A1C", lwd = 2, log="x");
 legend("bottomright",c("GenAll","DOnly"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
-plot(dOnlyt3$V1[1:20],dOnlylb3$V1[1:20], type = "l", xlim = range(c(100,63000)), ylim=range(c(0,50000)), xlab = "Time (sec.)", ylab = "LB", main = "Case 123", 
+plot(dOnlyt3$V1[1:20],dOnlylb3$V1[1:20], type = "l", xlim = range(c(50,63000)), ylim=range(c(0,50000)), xlab = "Time (sec.)", ylab = "LB", main = "Case 123", 
      col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2, log="x");
 lines(dOnlyt3$V2[1:99],dOnlylb3$V2[1:99], col = "#E41A1C", lwd = 2, log="x");
 legend("bottomright",c("GenAll","DOnly"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
@@ -283,3 +283,33 @@ lines(Nt4$V3[1:33], Nlb4$V3[1:33], col = "#984EA3", lwd = 2, log="x");
 lines(Nt5$V3[1:25], Nlb5$V3[1:25], col = "#3CAEA3", lwd = 2, log="x");
 legend("bottomright",c(expression(~N^p~" = 1",~N^p~" = 5",~N^p~" = 10",~N^p~" = 15",~N^p~" = 20")), , col = c("#377EB8","#E41A1C","#4DAF4A","#984EA3","#3CAEA3"),pch = 20,cex = 1.5);
 dev.off()
+
+# plot 4: UB plot
+dOnlyub1 <- read.csv("./Desktop/Git/disruptionN-1/test/csvOut/ub_1.csv", header = FALSE)
+dOnlyub2 <- read.csv("./Desktop/Git/disruptionN-1/test/csvOut/ub_2.csv", header = FALSE)
+dOnlyub3 <- read.csv("./Desktop/Git/disruptionN-1/test/csvOut/ub_3.csv", header = FALSE)
+redRGB <- col2rgb("#E41A1C");
+red_1 <- rgb(redRGB[1]/255, redRGB[2]/255, redRGB[3]/255, alpha=0.7)
+
+outString = "./Desktop/Git/disruptionN-1/test/csvOut/LBUB.png"
+png(file = outString, width= 13, height = 4.5, units = 'in',res = 300);
+par(mfrow=c(1,3));
+par(mar = c(5,5,2,2.5));
+
+plot(1:100,dOnlyub1$V1[1:100], type = "l", xlim = range(c(0,100)), ylim=range(c(0,50000)), xlab = "Iterations", ylab = "Bounds", main = "Case 13", 
+     col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2);
+lines(1:100,dOnlyub1$V2[1:100], col = "#E41A1C", lwd = 2);
+legend("bottomright",c("Lower Bound","Upper Bound"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
+
+plot(1:100,dOnlyub2$V1[1:100], type = "l", xlim = range(c(0,100)), ylim=range(c(0,60000)), xlab = "Iterations", ylab = "Bounds", main = "Case 13", 
+     col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2);
+lines(1:100,dOnlyub2$V2[1:100], col = "#E41A1C", lwd = 2);
+legend("bottomright",c("Lower Bound","Upper Bound"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
+
+plot(1:100,dOnlyub2$V1[1:100], type = "l", xlim = range(c(0,100)), ylim=range(c(0,60000)), xlab = "Iterations", ylab = "Bounds", main = "Case 13", 
+     col = "#377EB8", lwd = 2, cex.main = 2, cex.lab = 2, cex.axis = 2);
+lines(1:100,dOnlyub2$V2[1:100], col = "#E41A1C", lwd = 2);
+legend("bottomright",c("Lower Bound","Upper Bound"), col = c("#377EB8","#E41A1C"),pch = 20,cex = 1.5);
+dev.off()
+
+#polygon(c(1:100,rev(1:100)), c(dOnlyub1$V3[1:100], rev(dOnlyub1$V4[1:100])), col = red_1, border = NA)
