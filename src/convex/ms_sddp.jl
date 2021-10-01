@@ -125,6 +125,22 @@ function create_sddp(T, Δt, support, nominal_probability)
         # thermal limits under the normal condition
         @constraint(subproblem, thermal[l in fData.brList], W[l] == fData.rateA[l]);
 
+        @variable(subproblem, Pp[l in fData.brList] >= 0);
+        @variable(subproblem, Qp[l in fData.brList] >= 0);
+        @constraint(subproblem, Pp1[l in fData.brList], Pp[l] >= P[l]);
+        @constraint(subproblem, Pp2[l in fData.brList], Pp[l] >= -P[l]);
+        @constraint(subproblem, Qp1[l in fData.brList], Qp[l] >= Q[l]);
+        @constraint(subproblem, Qp2[l in fData.brList], Qp[l] >= -Q[l]);
+        @constraint(subproblem, addCons[l in fData.brList], Pp[l] + Qp[l] >= 0.00001);
+
+        @variable(subproblem, zpp[b in bData.IDList] >= 0);
+        @variable(subproblem, zqp[b in bData.IDList] >= 0);
+        @constraint(subproblem, zpp1[b in bData.IDList], zpp[b] >= zp[b]);
+        @constraint(subproblem, zpp2[b in bData.IDList], zpp[b] >= -zp[b]);
+        @constraint(subproblem, zqp1[b in bData.IDList], zqp[b] >= zq[b]);
+        @constraint(subproblem, zqp2[b in bData.IDList], zqp[b] >= -zq[b]);
+        @constraint(subproblem, addConsz[b in bData.IDList], zpp[b] + zqp[b] >= 0.00001);
+
         # Battery efficiency
         # Generator ramp up limit
         @constraints(subproblem, begin
@@ -157,7 +173,19 @@ function create_sddp(T, Δt, support, nominal_probability)
                         JuMP.set_normalized_rhs(sqLb[ω], 0.0)
                         JuMP.set_normalized_rhs(genRamp_up[ω], 1000*fData.RU[g])
                         JuMP.set_normalized_rhs(genRamp_down[ω], 1000*fData.RD[g])
+                    else
+                        JuMP.set_normalized_rhs(spUb[g], fData.Pmax[g])
+                        JuMP.set_normalized_rhs(sqUb[g], fData.Qmax[g])
+                        JuMP.set_normalized_rhs(spLb[g], fData.Pmin[g])
+                        JuMP.set_normalized_rhs(sqLb[g], fData.Qmin[g])
+                        JuMP.set_normalized_rhs(genRamp_up[g], fData.RU[g])
+                        JuMP.set_normalized_rhs(genRamp_down[g], fData.RD[g])
                     end
+                end
+                for l in fData.brList
+                    JuMP.set_normalized_rhs(linDistFlow_ub[l], 0.0);
+                    JuMP.set_normalized_rhs(linDistFlow_lb[l], 0.0);
+                    JuMP.set_normalized_rhs(thermal[l], fData.rateA[l]);
                 end
             else
                 # Change line bounds
@@ -166,7 +194,19 @@ function create_sddp(T, Δt, support, nominal_probability)
                         JuMP.set_normalized_rhs(linDistFlow_ub[l], -1000*fData.rateA[l]);
                         JuMP.set_normalized_rhs(linDistFlow_lb[l], 1000*fData.rateA[l]);
                         JuMP.set_normalized_rhs(thermal[l], 0.0);
+                    else
+                        JuMP.set_normalized_rhs(linDistFlow_ub[l], 0.0);
+                        JuMP.set_normalized_rhs(linDistFlow_lb[l], 0.0);
+                        JuMP.set_normalized_rhs(thermal[l], fData.rateA[l]);
                     end
+                end
+                for g in fData.genIDList
+                    JuMP.set_normalized_rhs(spUb[g], fData.Pmax[g])
+                    JuMP.set_normalized_rhs(sqUb[g], fData.Qmax[g])
+                    JuMP.set_normalized_rhs(spLb[g], fData.Pmin[g])
+                    JuMP.set_normalized_rhs(sqLb[g], fData.Qmin[g])
+                    JuMP.set_normalized_rhs(genRamp_up[g], fData.RU[g])
+                    JuMP.set_normalized_rhs(genRamp_down[g], fData.RD[g])
                 end
             end
         end
@@ -184,4 +224,4 @@ T = 8;
 caseList = [13,33,123];
 readInData(ci,caseList,T,τ);
 model = create_sddp(T,Δt,[1,3,(2,7)],[1/3,1/3,1/3]);
-SDDP.train(model; iteration_limit = 50, duality_handler = SDDP.ContinuousConicDuality())
+SDDP.train(model; iteration_limit = 100, duality_handler = SDDP.ContinuousConicDuality())
